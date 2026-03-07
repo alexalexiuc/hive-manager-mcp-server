@@ -54,11 +54,9 @@ npm run build
 # Login to Cloudflare
 npx wrangler login
 
-# Set secrets
+# Set secrets1wCSZfSw2mBPtE_xKIN85WiT7lRo-YBH8
 npx wrangler secret put GOOGLE_SERVICE_ACCOUNT_JSON
 npx wrangler secret put HIVES_FOLDER_ID
-npx wrangler secret put PROFILES_FOLDER_ID
-npx wrangler secret put LOG_SHEET_ID
 
 # Deploy (same command used by the GitHub Deploy workflow)
 npm run deploy

@@ -65,7 +65,7 @@ jobs:
       - name: Run E2E tests
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-          HIVES_FOLDER_ID: 1zjIPbP14PhOAQbor5JB8qd_xy6uJHNPk # {DRIVE}/Hives/e2e folder
+          HIVES_FOLDER_ID: 1wCSZfSw2mBPtE_xKIN85WiT7lRo-YBH8
           HIVES_FOLDER_NAME: Hives
           HIVES_E2E_FOLDER_NAME: e2e
           E2E_SPREADSHEET_NAME: hive_manager

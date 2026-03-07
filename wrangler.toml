@@ -5,9 +5,8 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 PORT = "3000"
+HIVES_FOLDER_ID = "1wCSZfSw2mBPtE_xKIN85WiT7lRo-YBH8"
 
 # Secrets (set via: wrangler secret put <SECRET_NAME>)
 # GOOGLE_SERVICE_ACCOUNT_JSON
 # HIVES_FOLDER_ID
-# PROFILES_FOLDER_ID
-# LOG_SHEET_ID
