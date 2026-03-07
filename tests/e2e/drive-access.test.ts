@@ -1,34 +1,10 @@
-import "dotenv/config";
 import { describe, expect, it } from "vitest";
-import { SPREADSHEET_NAME } from "../../src/constants.js";
 import {
   findFolder,
   findSpreadsheetInFolder,
 } from "../../src/services/drive.js";
 import { createDriveClient } from "../../src/services/google.js";
-
-type E2EConfig = {
-  serviceAccountJson?: string;
-  hivesFolderId?: string;
-  hivesFolderName: string;
-  hivesE2eFolderName: string;
-  spreadsheetName: string;
-};
-
-function getEnvValue(name: string): string | undefined {
-  const value = process.env[name];
-  return value && value.trim() ? value.trim() : undefined;
-}
-
-function getE2EConfig(): E2EConfig {
-  return {
-    serviceAccountJson: getEnvValue("GOOGLE_SERVICE_ACCOUNT_JSON"),
-    hivesFolderId: getEnvValue("HIVES_FOLDER_ID"),
-    hivesFolderName: getEnvValue("HIVES_FOLDER_NAME") ?? "Hives",
-    hivesE2eFolderName: getEnvValue("HIVES_E2E_FOLDER_NAME") ?? "e2e",
-    spreadsheetName: getEnvValue("E2E_SPREADSHEET_NAME") ?? SPREADSHEET_NAME,
-  };
-}
+import { getE2EConfig } from "./e2eUtils.js";
 
 const config = getE2EConfig();
 const describeIfConfigured = config.serviceAccountJson
@@ -45,7 +21,6 @@ describeIfConfigured("Drive E2E: spreadsheet access", () => {
 
     const hivesFolderId =
       config.hivesFolderId ?? (await findFolder(drive, config.hivesFolderName));
-    console.log("Using Hives folder ID:", hivesFolderId);
     if (!hivesFolderId) {
       throw new Error(
         `Could not find '${config.hivesFolderName}' folder in Google Drive.`,

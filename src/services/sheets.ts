@@ -8,6 +8,25 @@ import {
   APIARY_TODOS_SHEET_HEADERS,
 } from '../constants.js';
 
+const REQUIRED_SHEETS = [
+  LOGS_SHEET_NAME,
+  PROFILES_SHEET_NAME,
+  APIARY_TODOS_SHEET_NAME,
+] as const;
+
+function getSheetIdByTitle(
+  spreadsheet: sheets_v4.Schema$Spreadsheet,
+  title: string
+): number | null {
+  for (const sheet of spreadsheet.sheets ?? []) {
+    if (sheet.properties?.title === title && typeof sheet.properties.sheetId === 'number') {
+      return sheet.properties.sheetId;
+    }
+  }
+
+  return null;
+}
+
 export async function appendRow(
   sheets: sheets_v4.Sheets,
   spreadsheetId: string,
@@ -89,36 +108,64 @@ export async function createSpreadsheet(
   });
 
   const spreadsheetId = response.data.id as string;
+  await ensureSpreadsheetStructure(sheets, spreadsheetId);
+  return spreadsheetId;
+}
 
-  // Rename the default sheet to "logs" and add "profiles" and "apiary_todos"
-  const sheetsResponse = await sheets.spreadsheets.get({ spreadsheetId });
-  const defaultSheetId = sheetsResponse.data.sheets?.[0]?.properties?.sheetId ?? 0;
+export async function ensureSpreadsheetStructure(
+  sheets: sheets_v4.Sheets,
+  spreadsheetId: string
+): Promise<void> {
+  const initial = await sheets.spreadsheets.get({ spreadsheetId });
+  const hasLogs = getSheetIdByTitle(initial.data, LOGS_SHEET_NAME) !== null;
+  const hasProfiles = getSheetIdByTitle(initial.data, PROFILES_SHEET_NAME) !== null;
+  const hasTodos = getSheetIdByTitle(initial.data, APIARY_TODOS_SHEET_NAME) !== null;
+  const defaultSheetId = getSheetIdByTitle(initial.data, 'Sheet1');
 
-  await sheets.spreadsheets.batchUpdate({
-    spreadsheetId,
-    requestBody: {
-      requests: [
-        {
-          updateSheetProperties: {
-            properties: { sheetId: defaultSheetId, title: LOGS_SHEET_NAME },
-            fields: 'title',
-          },
+  const setupRequests: sheets_v4.Schema$Request[] = [];
+  if (!hasLogs) {
+    if (defaultSheetId !== null) {
+      setupRequests.push({
+        updateSheetProperties: {
+          properties: { sheetId: defaultSheetId, title: LOGS_SHEET_NAME },
+          fields: 'title',
         },
-        {
-          addSheet: {
-            properties: { title: PROFILES_SHEET_NAME },
-          },
+      });
+    } else {
+      setupRequests.push({
+        addSheet: {
+          properties: { title: LOGS_SHEET_NAME },
         },
-        {
-          addSheet: {
-            properties: { title: APIARY_TODOS_SHEET_NAME },
-          },
-        },
-      ],
-    },
-  });
+      });
+    }
+  }
 
-  // Add headers to all three sheets
+  if (!hasProfiles) {
+    setupRequests.push({
+      addSheet: {
+        properties: { title: PROFILES_SHEET_NAME },
+      },
+    });
+  }
+
+  if (!hasTodos) {
+    setupRequests.push({
+      addSheet: {
+        properties: { title: APIARY_TODOS_SHEET_NAME },
+      },
+    });
+  }
+
+  if (setupRequests.length > 0) {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: setupRequests,
+      },
+    });
+  }
+
+  // Ensure canonical headers are always present.
   await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId,
     requestBody: {
@@ -131,38 +178,43 @@ export async function createSpreadsheet(
     },
   });
 
-  // Get updated sheet IDs for formatting
-  const updatedSheets = await sheets.spreadsheets.get({ spreadsheetId });
-  const sheetIds = (updatedSheets.data.sheets ?? []).map(
-    (s: sheets_v4.Schema$Sheet) => s.properties?.sheetId ?? 0
-  );
+  // Apply bold header + frozen row formatting to required sheets.
+  const updated = await sheets.spreadsheets.get({ spreadsheetId });
+  const formatRequests: sheets_v4.Schema$Request[] = [];
+  for (const title of REQUIRED_SHEETS) {
+    const sheetId = getSheetIdByTitle(updated.data, title);
+    if (sheetId === null) {
+      continue;
+    }
 
-  // Apply bold header + frozen row formatting to all sheets
-  await sheets.spreadsheets.batchUpdate({
-    spreadsheetId,
-    requestBody: {
-      requests: sheetIds.flatMap((sheetId: number) => [
-        {
-          repeatCell: {
-            range: { sheetId, startRowIndex: 0, endRowIndex: 1 },
-            cell: {
-              userEnteredFormat: {
-                textFormat: { bold: true },
-                backgroundColor: { red: 0.2, green: 0.6, blue: 0.2 },
-              },
+    formatRequests.push(
+      {
+        repeatCell: {
+          range: { sheetId, startRowIndex: 0, endRowIndex: 1 },
+          cell: {
+            userEnteredFormat: {
+              textFormat: { bold: true },
+              backgroundColor: { red: 0.2, green: 0.6, blue: 0.2 },
             },
-            fields: 'userEnteredFormat(textFormat,backgroundColor)',
           },
+          fields: 'userEnteredFormat(textFormat,backgroundColor)',
         },
-        {
-          updateSheetProperties: {
-            properties: { sheetId, gridProperties: { frozenRowCount: 1 } },
-            fields: 'gridProperties.frozenRowCount',
-          },
+      },
+      {
+        updateSheetProperties: {
+          properties: { sheetId, gridProperties: { frozenRowCount: 1 } },
+          fields: 'gridProperties.frozenRowCount',
         },
-      ]),
-    },
-  });
+      }
+    );
+  }
 
-  return spreadsheetId;
+  if (formatRequests.length > 0) {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: formatRequests,
+      },
+    });
+  }
 }
