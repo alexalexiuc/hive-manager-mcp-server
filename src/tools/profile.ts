@@ -38,10 +38,12 @@ type GetProfileInput = z.infer<typeof GetProfileSchema>;
 type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
 
 export function registerProfileTools(server: McpServer, env: Env) {
-  server.tool(
+  server.registerTool(
     'hive_get_profile',
-    'Read the current profile for a specific hive from the profiles sheet.',
-    GetProfileSchema.shape,
+    {
+      description: 'Read the current profile for a specific hive from the profiles sheet.',
+      inputSchema: GetProfileSchema.shape,
+    },
     async (input: GetProfileInput) => {
       const spreadsheetId = await requireSpreadsheetId(env);
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
@@ -66,10 +68,12 @@ export function registerProfileTools(server: McpServer, env: Env) {
     }
   );
 
-  server.tool(
+  server.registerTool(
     'hive_update_profile',
-    'Update specific fields in a hive profile row in the profiles sheet.',
-    UpdateProfileSchema.shape,
+    {
+      description: 'Update specific fields in a hive profile row in the profiles sheet.',
+      inputSchema: UpdateProfileSchema.shape,
+    },
     async (input: UpdateProfileInput) => {
       const spreadsheetId = await requireSpreadsheetId(env);
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
@@ -123,10 +127,11 @@ export function registerProfileTools(server: McpServer, env: Env) {
     }
   );
 
-  server.tool(
+  server.registerTool(
     'hive_get_all_profiles',
-    'List all hive profiles from the profiles sheet.',
-    {},
+    {
+      description: 'List all hive profiles from the profiles sheet.',
+    },
     async () => {
       const spreadsheetId = await requireSpreadsheetId(env);
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);

@@ -24,10 +24,13 @@ const LogEntrySchema = z.object({
 type LogEntryInput = z.infer<typeof LogEntrySchema>;
 
 export function registerLogTool(server: McpServer, env: Env) {
-  server.tool(
+  server.registerTool(
     'hive_log_entry',
-    'Log a hive event. Appends a row to the logs sheet and creates or updates the hive profile row in the profiles sheet.',
-    LogEntrySchema.shape,
+    {
+      description:
+        'Log a hive event. Appends a row to the logs sheet and creates or updates the hive profile row in the profiles sheet.',
+      inputSchema: LogEntrySchema.shape,
+    },
     async (input: LogEntryInput) => {
       const spreadsheetId = await requireSpreadsheetId(env);
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);

@@ -17,10 +17,11 @@ const AddTodoSchema = z.object({
 type AddTodoInput = z.infer<typeof AddTodoSchema>;
 
 export function registerTodoTools(server: McpServer, env: Env) {
-  server.tool(
+  server.registerTool(
     'hive_get_todos',
-    'Read all general apiary todos from the apiary_todos sheet.',
-    {},
+    {
+      description: 'Read all general apiary todos from the apiary_todos sheet.',
+    },
     async () => {
       const spreadsheetId = await requireSpreadsheetId(env);
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
@@ -51,10 +52,12 @@ export function registerTodoTools(server: McpServer, env: Env) {
     }
   );
 
-  server.tool(
+  server.registerTool(
     'hive_add_todo',
-    'Add a new general apiary todo entry to the apiary_todos sheet.',
-    AddTodoSchema.shape,
+    {
+      description: 'Add a new general apiary todo entry to the apiary_todos sheet.',
+      inputSchema: AddTodoSchema.shape,
+    },
     async (input: AddTodoInput) => {
       const spreadsheetId = await requireSpreadsheetId(env);
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);

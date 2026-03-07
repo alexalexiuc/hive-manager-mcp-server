@@ -6,10 +6,12 @@ import { resolveSpreadsheetId } from '../services/spreadsheet.js';
 import type { Env } from '../types.js';
 
 export function registerSetupTool(server: McpServer, env: Env) {
-  server.tool(
+  server.registerTool(
     'hive_setup',
-    'Set up the hive_manager Google Spreadsheet with logs, profiles, and apiary_todos sheets. Creates the spreadsheet if it does not already exist.',
-    {},
+    {
+      description:
+        'Set up the hive_manager Google Spreadsheet with logs, profiles, and apiary_todos sheets. Creates the spreadsheet if it does not already exist.',
+    },
     async () => {
       let spreadsheetId = await resolveSpreadsheetId(env);
       if (!spreadsheetId) {

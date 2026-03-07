@@ -21,10 +21,13 @@ const HistorySchema = z.object({
 type HistoryInput = z.infer<typeof HistorySchema>;
 
 export function registerHistoryTool(server: McpServer, env: Env) {
-  server.tool(
+  server.registerTool(
     'hive_get_log_history',
-    'Retrieve event log history from the logs sheet. Optionally filter by hive and limit results.',
-    HistorySchema.shape,
+    {
+      description:
+        'Retrieve event log history from the logs sheet. Optionally filter by hive and limit results.',
+      inputSchema: HistorySchema.shape,
+    },
     async (input: HistoryInput) => {
       const spreadsheetId = await requireSpreadsheetId(env);
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
