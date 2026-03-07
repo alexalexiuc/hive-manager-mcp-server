@@ -1,0 +1,13 @@
+name = "hive-mcp-server"
+main = "dist/index.js"
+compatibility_date = "2024-01-01"
+node_compat = true
+
+[vars]
+PORT = "3000"
+
+# Secrets (set via: wrangler secret put <SECRET_NAME>)
+# GOOGLE_SERVICE_ACCOUNT_JSON
+# HIVES_FOLDER_ID
+# PROFILES_FOLDER_ID
+# LOG_SHEET_ID
