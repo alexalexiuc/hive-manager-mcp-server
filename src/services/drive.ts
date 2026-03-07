@@ -75,19 +75,9 @@ export async function findOrCreateFolder(
   name: string,
   parentId?: string
 ): Promise<string> {
-  let query = `name = '${escapeDriveQueryString(name)}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
-  if (parentId) {
-    query += ` and '${escapeDriveQueryString(parentId)}' in parents`;
-  }
-
-  const response = await drive.files.list({
-    q: query,
-    fields: 'files(id)',
-  });
-
-  const files = response.data.files;
-  if (files && files.length > 0 && files[0].id) {
-    return files[0].id;
+  const existingFolderId = await findFolder(drive, name, parentId);
+  if (existingFolderId) {
+    return existingFolderId;
   }
 
   const createParams: drive_v3.Params$Resource$Files$Create = {
@@ -104,6 +94,29 @@ export async function findOrCreateFolder(
 
   const created = await drive.files.create(createParams);
   return created.data.id as string;
+}
+
+export async function findFolder(
+  drive: drive_v3.Drive,
+  name: string,
+  parentId?: string
+): Promise<string | null> {
+  let query = `name = '${escapeDriveQueryString(name)}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+  if (parentId) {
+    query += ` and '${escapeDriveQueryString(parentId)}' in parents`;
+  }
+
+  const response = await drive.files.list({
+    q: query,
+    fields: 'files(id)',
+  });
+
+  const files = response.data.files;
+  if (files && files.length > 0 && files[0].id) {
+    return files[0].id;
+  }
+
+  return null;
 }
 
 export async function findFile(
@@ -131,6 +144,26 @@ export async function findSpreadsheet(
   name: string
 ): Promise<string | null> {
   const query = `name = '${escapeDriveQueryString(name)}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`;
+
+  const response = await drive.files.list({
+    q: query,
+    fields: 'files(id)',
+  });
+
+  const files = response.data.files;
+  if (files && files.length > 0 && files[0].id) {
+    return files[0].id;
+  }
+
+  return null;
+}
+
+export async function findSpreadsheetInFolder(
+  drive: drive_v3.Drive,
+  name: string,
+  parentId: string
+): Promise<string | null> {
+  const query = `name = '${escapeDriveQueryString(name)}' and mimeType = 'application/vnd.google-apps.spreadsheet' and '${escapeDriveQueryString(parentId)}' in parents and trashed = false`;
 
   const response = await drive.files.list({
     q: query,

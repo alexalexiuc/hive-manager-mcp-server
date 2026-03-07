@@ -41,6 +41,9 @@ npm run type-check
 # Run tests
 npm run test
 
+# Run e2e tests (checks spreadsheet access in Hives/e2e)
+npm run test:e2e
+
 # Build
 npm run build
 ```
@@ -64,6 +67,15 @@ wrangler secret put LOG_SHEET_ID
 npm run build
 wrangler deploy
 ```
+
+## CI E2E Configuration
+
+To run e2e tests in GitHub Actions (on `push` and `pull_request`), set these repository secrets:
+
+- `GOOGLE_SERVICE_ACCOUNT_JSON`
+- `HIVES_FOLDER_ID`
+
+The CI e2e job checks spreadsheet access in `Hives/e2e` using `hive_manager` by default.
 
 ## Adding to Claude as MCP Integration
 
@@ -160,6 +172,8 @@ Update the general apiary todos.
 |---|---|---|
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | Yes | Full JSON string of the Google Service Account key |
 | `HIVES_FOLDER_ID` | Recommended | Google Drive folder ID for Hives/ (skip setup lookup) |
+| `HIVES_E2E_FOLDER_NAME` | No | E2E subfolder name under `Hives/` (default: `e2e`) |
+| `E2E_SPREADSHEET_NAME` | No | Spreadsheet name for e2e lookup (default: `hive_manager`) |
 | `PROFILES_FOLDER_ID` | Recommended | Google Drive folder ID for profiles/ subfolder |
 | `LOG_SHEET_ID` | Recommended | Google Sheets ID for hive_logs spreadsheet |
 | `PORT` | No | HTTP server port (default: 3000, local dev only) |
