@@ -55,7 +55,7 @@ Notes:
 ## GitHub Actions
 
 - CI workflow: runs on `pull_request`.
-- Deploy workflow: manual (`workflow_dispatch`).
+- Deploy workflow: runs on `push` to `main` and can also be run manually (`workflow_dispatch`).
 
 For CI e2e:
 - Required repository secret: `GOOGLE_SERVICE_ACCOUNT_JSON`
