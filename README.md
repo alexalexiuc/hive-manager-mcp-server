@@ -1,11 +1,11 @@
-# hive-mcp-server
+# hive-manager-mcp-server
 
 An MCP (Model Context Protocol) server for beekeeping log management. It allows an AI assistant (Claude) to manage beekeeping records by reading and writing directly to **Google Sheets** and **Google Drive** via the official `googleapis` Node.js SDK. Deployable to **Cloudflare Workers** for remote/mobile access.
 
 ## Architecture
 
 ```
-Claude (AI) ──► MCP Client ──► POST /mcp ──► hive-mcp-server (Cloudflare Workers)
+Claude (AI) ──► MCP Client ──► POST /mcp ──► hive-manager-mcp-server (Cloudflare Workers)
                                                       │
                               ┌───────────────────────┤
                               │                       │
@@ -51,21 +51,17 @@ npm run build
 ## Deploying to Cloudflare Workers
 
 ```bash
-# Install Wrangler
-npm install -g wrangler
-
 # Login to Cloudflare
-wrangler login
+npx wrangler login
 
 # Set secrets
-wrangler secret put GOOGLE_SERVICE_ACCOUNT_JSON
-wrangler secret put HIVES_FOLDER_ID
-wrangler secret put PROFILES_FOLDER_ID
-wrangler secret put LOG_SHEET_ID
+npx wrangler secret put GOOGLE_SERVICE_ACCOUNT_JSON
+npx wrangler secret put HIVES_FOLDER_ID
+npx wrangler secret put PROFILES_FOLDER_ID
+npx wrangler secret put LOG_SHEET_ID
 
-# Deploy
-npm run build
-wrangler deploy
+# Deploy (same command used by CI)
+npm run deploy
 ```
 
 ## CI E2E Configuration
@@ -86,6 +82,7 @@ The CI e2e job checks spreadsheet access in `Hives/e2e` using `hive_manager` by 
 ## MCP Tools
 
 ### `hive_setup`
+
 Set up the Google Drive/Sheets structure.
 
 **Output:** `{ success, folder_url, sheet_url }`
@@ -93,9 +90,11 @@ Set up the Google Drive/Sheets structure.
 ---
 
 ### `hive_log_entry`
+
 Log a hive inspection.
 
 **Input:**
+
 ```json
 {
   "hive_id": "1",
@@ -117,6 +116,7 @@ Log a hive inspection.
 ---
 
 ### `hive_get_profile`
+
 Get a hive's profile.
 
 **Input:** `{ "hive_id": "1" }`
@@ -126,6 +126,7 @@ Get a hive's profile.
 ---
 
 ### `hive_update_profile`
+
 Update specific fields in a hive profile.
 
 **Input:** `{ "hive_id": "1", "status": "Medium", "notes": "Queen cage removed" }`
@@ -135,6 +136,7 @@ Update specific fields in a hive profile.
 ---
 
 ### `hive_get_all_profiles`
+
 Get all hive profiles.
 
 **Output:** `{ count, profiles: [{ hive_id, content }] }`
@@ -142,6 +144,7 @@ Get all hive profiles.
 ---
 
 ### `hive_get_log_history`
+
 Get inspection log history.
 
 **Input:** `{ "hive_id": "1", "limit": 20 }` (both optional)
@@ -151,6 +154,7 @@ Get inspection log history.
 ---
 
 ### `hive_get_todos`
+
 Get the general apiary todos.
 
 **Output:** Todos file text content
@@ -158,6 +162,7 @@ Get the general apiary todos.
 ---
 
 ### `hive_update_todos`
+
 Update the general apiary todos.
 
 **Input:** `{ "content": "APIARY GENERAL TODOS\n..." }`
@@ -168,12 +173,12 @@ Update the general apiary todos.
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `GOOGLE_SERVICE_ACCOUNT_JSON` | Yes | Full JSON string of the Google Service Account key |
-| `HIVES_FOLDER_ID` | Recommended | Google Drive folder ID for Hives/ (skip setup lookup) |
-| `HIVES_E2E_FOLDER_NAME` | No | E2E subfolder name under `Hives/` (default: `e2e`) |
-| `E2E_SPREADSHEET_NAME` | No | Spreadsheet name for e2e lookup (default: `hive_manager`) |
-| `PROFILES_FOLDER_ID` | Recommended | Google Drive folder ID for profiles/ subfolder |
-| `LOG_SHEET_ID` | Recommended | Google Sheets ID for hive_logs spreadsheet |
-| `PORT` | No | HTTP server port (default: 3000, local dev only) |
+| Variable                      | Required    | Description                                               |
+| ----------------------------- | ----------- | --------------------------------------------------------- |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | Yes         | Full JSON string of the Google Service Account key        |
+| `HIVES_FOLDER_ID`             | Recommended | Google Drive folder ID for Hives/ (skip setup lookup)     |
+| `HIVES_E2E_FOLDER_NAME`       | No          | E2E subfolder name under `Hives/` (default: `e2e`)        |
+| `E2E_SPREADSHEET_NAME`        | No          | Spreadsheet name for e2e lookup (default: `hive_manager`) |
+| `PROFILES_FOLDER_ID`          | Recommended | Google Drive folder ID for profiles/ subfolder            |
+| `LOG_SHEET_ID`                | Recommended | Google Sheets ID for hive_logs spreadsheet                |
+| `PORT`                        | No          | HTTP server port (default: 3000, local dev only)          |

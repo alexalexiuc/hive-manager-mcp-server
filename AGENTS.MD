@@ -1,6 +1,6 @@
 # AGENTS.MD
 
-Guidance for coding agents working in `hive-mcp-server`.
+Guidance for coding agents working in `hive-manager-mcp-server`.
 
 ## Scope
 

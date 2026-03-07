@@ -1,23 +1,27 @@
-import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
-import { createMcpServer } from './server.js';
-import type { Env } from './types.js';
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { createMcpServer } from "./server.js";
+import type { Env } from "./types.js";
 
-const VERSION = '1.0.0';
+const VERSION = "1.0.0";
 
 async function handleRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
 
-  if (url.pathname === '/health' && request.method === 'GET') {
+  if (url.pathname === "/health" && request.method === "GET") {
     return new Response(
-      JSON.stringify({ status: 'ok', server: 'hive-mcp-server', version: VERSION }),
+      JSON.stringify({
+        status: "ok",
+        server: "hive-manager-mcp-server",
+        version: VERSION,
+      }),
       {
         status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
+        headers: { "Content-Type": "application/json" },
+      },
     );
   }
 
-  if (url.pathname === '/mcp' && request.method === 'POST') {
+  if (url.pathname === "/mcp" && request.method === "POST") {
     const server = createMcpServer(env);
 
     const transport = new WebStandardStreamableHTTPServerTransport({
@@ -30,7 +34,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return transport.handleRequest(request);
   }
 
-  return new Response('Not Found', { status: 404 });
+  return new Response("Not Found", { status: 404 });
 }
 
 // Cloudflare Workers export
@@ -41,7 +45,7 @@ export default {
 };
 
 // Node.js HTTP server fallback
-if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
-  const port = parseInt(process.env.PORT ?? '3000', 10);
-  console.log(`Starting hive-mcp-server on port ${port}...`);
+if (typeof process !== "undefined" && process.env.NODE_ENV !== "test") {
+  const port = parseInt(process.env.PORT ?? "3000", 10);
+  console.log(`Starting hive-manager-mcp-server on port ${port}...`);
 }

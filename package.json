@@ -1,5 +1,5 @@
 {
-  "name": "hive-mcp-server",
+  "name": "hive-manager-mcp-server",
   "version": "1.0.0",
   "description": "MCP server for beekeeping log management via Google Sheets and Drive",
   "type": "module",
@@ -13,7 +13,8 @@
     "test:e2e": "vitest run tests/e2e",
     "test:watch": "vitest",
     "lint": "eslint src tests --ext .ts",
-    "lint:fix": "eslint src tests --ext .ts --fix"
+    "lint:fix": "eslint src tests --ext .ts --fix",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.8.0",
@@ -28,6 +29,6 @@
     "tsx": "^4.19.0",
     "typescript": "^5.5.4",
     "vitest": "^2.1.0",
-    "wrangler": "^3.75.0"
+    "wrangler": "^4.71.0"
   }
 }
