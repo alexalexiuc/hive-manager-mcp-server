@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createSheetsClient } from '../services/google.js';
 import { getRows } from '../services/sheets.js';
+import { requireSpreadsheetId } from '../services/spreadsheet.js';
 import { LOGS_SHEET_NAME, DEFAULT_LOG_LIMIT, MAX_LOG_LIMIT } from '../constants.js';
 import type { Env } from '../types.js';
 
@@ -25,12 +26,8 @@ export function registerHistoryTool(server: McpServer, env: Env) {
     'Retrieve event log history from the logs sheet. Optionally filter by hive and limit results.',
     HistorySchema.shape,
     async (input: HistoryInput) => {
+      const spreadsheetId = await requireSpreadsheetId(env);
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
-
-      const spreadsheetId = env.SPREADSHEET_ID;
-      if (!spreadsheetId) {
-        throw new Error('SPREADSHEET_ID is not set. Run hive_setup first.');
-      }
 
       const rows = await getRows(sheets, spreadsheetId, LOGS_SHEET_NAME);
 

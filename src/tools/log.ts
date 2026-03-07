@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createSheetsClient } from '../services/google.js';
 import { appendRow, findRowIndex, updateRow } from '../services/sheets.js';
+import { requireSpreadsheetId } from '../services/spreadsheet.js';
 import { EventType, LOGS_SHEET_NAME, PROFILES_SHEET_NAME } from '../constants.js';
 import type { Env } from '../types.js';
 
@@ -28,12 +29,8 @@ export function registerLogTool(server: McpServer, env: Env) {
     'Log a hive event. Appends a row to the logs sheet and creates or updates the hive profile row in the profiles sheet.',
     LogEntrySchema.shape,
     async (input: LogEntryInput) => {
+      const spreadsheetId = await requireSpreadsheetId(env);
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
-
-      const spreadsheetId = env.SPREADSHEET_ID;
-      if (!spreadsheetId) {
-        throw new Error('SPREADSHEET_ID is not set. Run hive_setup first.');
-      }
 
       const timestamp = input.timestamp ?? new Date().toISOString();
       const date = timestamp.split('T')[0];

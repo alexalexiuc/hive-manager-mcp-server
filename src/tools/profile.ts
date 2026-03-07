@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createSheetsClient } from '../services/google.js';
 import { getRows, findRowIndex, updateRow, appendRow } from '../services/sheets.js';
+import { requireSpreadsheetId } from '../services/spreadsheet.js';
 import { PROFILES_SHEET_NAME } from '../constants.js';
 import type { Env, HiveProfile } from '../types.js';
 
@@ -42,12 +43,8 @@ export function registerProfileTools(server: McpServer, env: Env) {
     'Read the current profile for a specific hive from the profiles sheet.',
     GetProfileSchema.shape,
     async (input: GetProfileInput) => {
+      const spreadsheetId = await requireSpreadsheetId(env);
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
-
-      const spreadsheetId = env.SPREADSHEET_ID;
-      if (!spreadsheetId) {
-        throw new Error('SPREADSHEET_ID is not set. Run hive_setup first.');
-      }
 
       const rowIndex = await findRowIndex(sheets, spreadsheetId, PROFILES_SHEET_NAME, 0, input.hive);
       if (rowIndex === null) {
@@ -74,12 +71,8 @@ export function registerProfileTools(server: McpServer, env: Env) {
     'Update specific fields in a hive profile row in the profiles sheet.',
     UpdateProfileSchema.shape,
     async (input: UpdateProfileInput) => {
+      const spreadsheetId = await requireSpreadsheetId(env);
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
-
-      const spreadsheetId = env.SPREADSHEET_ID;
-      if (!spreadsheetId) {
-        throw new Error('SPREADSHEET_ID is not set. Run hive_setup first.');
-      }
 
       const updatedAt = new Date().toISOString();
       const rowIndex = await findRowIndex(sheets, spreadsheetId, PROFILES_SHEET_NAME, 0, input.hive);
@@ -135,12 +128,8 @@ export function registerProfileTools(server: McpServer, env: Env) {
     'List all hive profiles from the profiles sheet.',
     {},
     async () => {
+      const spreadsheetId = await requireSpreadsheetId(env);
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
-
-      const spreadsheetId = env.SPREADSHEET_ID;
-      if (!spreadsheetId) {
-        throw new Error('SPREADSHEET_ID is not set. Run hive_setup first.');
-      }
 
       const rows = await getRows(sheets, spreadsheetId, PROFILES_SHEET_NAME);
       const profiles = rows.map((row) => rowToProfile(row));
