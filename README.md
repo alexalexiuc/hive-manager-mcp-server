@@ -1,184 +1,112 @@
 # hive-manager-mcp-server
 
-An MCP (Model Context Protocol) server for beekeeping log management. It allows an AI assistant (Claude) to manage beekeeping records by reading and writing directly to **Google Sheets** and **Google Drive** via the official `googleapis` Node.js SDK. Deployable to **Cloudflare Workers** for remote/mobile access.
+MCP server for beekeeping data, backed by Google Sheets and Google Drive.
 
-## Architecture
+## Overview
 
-```
-Claude (AI) ──► MCP Client ──► POST /mcp ──► hive-manager-mcp-server (Cloudflare Workers)
-                                                      │
-                              ┌───────────────────────┤
-                              │                       │
-                     Google Sheets API         Google Drive API
-                         (hive_logs)            (profiles/, todos)
-```
+- Runtime: Node.js + TypeScript (ESM)
+- Entry points: `src/index.ts`, `src/server.ts`
+- Storage:
+  - Google Spreadsheet `hive_manager`
+  - Sheets: `logs`, `profiles`, `apiary_todos`
 
-## Google Cloud Setup
+## Google Setup
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project
-3. Enable the **Google Sheets API** and **Google Drive API**
-4. Create a **Service Account** (IAM & Admin → Service Accounts)
-5. Create a JSON key for the service account and download it
-6. Share your `Hives/` Google Drive folder with the service account email (Editor access)
+1. Create a Google Cloud project.
+2. Enable Google Sheets API and Google Drive API.
+3. Create a service account and download its JSON key.
+4. Share your Drive folder (for example `Hives/`) with the service-account email.
 
 ## Local Development
 
 ```bash
-# Install dependencies
 npm install
 
-# Copy and fill in environment variables
+# create local env file
 cp .env.example .env
-# Edit .env with your Google Service Account JSON and folder/sheet IDs
 
-# Run in development mode
+# run locally
 npm run dev
 
-# Type check
+# checks
 npm run type-check
-
-# Run tests
 npm run test
-
-# Run e2e tests (checks spreadsheet access in Hives/e2e)
 npm run test:e2e
-
-# Build
 npm run build
 ```
 
-## Deploying to Cloudflare Workers
+## Deploy (Cloudflare Workers)
 
 ```bash
-# Login to Cloudflare
+# authenticate once
 npx wrangler login
 
-# Set secrets
+# required secret
 npx wrangler secret put GOOGLE_SERVICE_ACCOUNT_JSON
-npx wrangler secret put HIVES_FOLDER_ID
-npx wrangler secret put PROFILES_FOLDER_ID
-npx wrangler secret put LOG_SHEET_ID
 
-# Deploy (same command used by CI)
+# deploy
 npm run deploy
 ```
 
-## CI E2E Configuration
+Notes:
+- `npm run deploy` runs `npm run build && wrangler deploy`.
+- `SPREADSHEET_ID` is optional. If unset, `hive_setup` finds/creates `hive_manager`.
 
-To run e2e tests in GitHub Actions (on `push` and `pull_request`), set these repository secrets:
+## GitHub Actions
 
-- `GOOGLE_SERVICE_ACCOUNT_JSON`
-- `HIVES_FOLDER_ID`
+- CI workflow: runs on `pull_request`.
+- Deploy workflow: manual (`workflow_dispatch`).
 
-The CI e2e job checks spreadsheet access in `Hives/e2e` using `hive_manager` by default.
+For CI e2e:
+- Required repository secret: `GOOGLE_SERVICE_ACCOUNT_JSON`
+- Optional repository variable: `HIVES_FOLDER_ID`
 
-## Adding to Claude as MCP Integration
-
-1. Open Claude → Settings → Integrations
-2. Add new integration with URL: `https://your-worker.workers.dev/mcp`
-3. Claude can now use all hive management tools
+If `HIVES_FOLDER_ID` is not set, e2e resolves `Hives` by folder name.
 
 ## MCP Tools
 
 ### `hive_setup`
-
-Set up the Google Drive/Sheets structure.
-
-**Output:** `{ success, folder_url, sheet_url }`
-
----
+- Input: none
+- Output: `{ success, spreadsheet_url }`
 
 ### `hive_log_entry`
-
-Log a hive inspection.
-
-**Input:**
-
-```json
-{
-  "hive_id": "1",
-  "overall_status": "Strong",
-  "date": "2024-01-15",
-  "location": "Main apiary",
-  "boxes": 2,
-  "frames": 8,
-  "queen_seen": "Yes",
-  "notes": "Colony thriving",
-  "action_taken": "Added honey super",
-  "next_visit": "2024-01-29",
-  "todos": "Check varroa levels"
-}
-```
-
-**Output:** `{ success, message }`
-
----
+- Input:
+  - required: `hive`, `event_type` (`inspection|feeding|treatment|harvest`)
+  - optional: `timestamp`, `queen_seen`, `brood_status`, `food_status`, `action_taken`, `notes`, `next_check`, `tags`, `strength`, `todos`
+- Output: `{ success, message }`
 
 ### `hive_get_profile`
-
-Get a hive's profile.
-
-**Input:** `{ "hive_id": "1" }`
-
-**Output:** Profile text content
-
----
+- Input: `{ hive }`
+- Output: profile JSON row
 
 ### `hive_update_profile`
-
-Update specific fields in a hive profile.
-
-**Input:** `{ "hive_id": "1", "status": "Medium", "notes": "Queen cage removed" }`
-
-**Output:** `{ success, message }`
-
----
+- Input: `{ hive, strength?, queen_status?, brood_status?, food_status?, notes?, todos? }`
+- Output: `{ success, message }`
 
 ### `hive_get_all_profiles`
-
-Get all hive profiles.
-
-**Output:** `{ count, profiles: [{ hive_id, content }] }`
-
----
+- Input: none
+- Output: `{ count, profiles }`
 
 ### `hive_get_log_history`
-
-Get inspection log history.
-
-**Input:** `{ "hive_id": "1", "limit": 20 }` (both optional)
-
-**Output:** `{ count, entries: [...] }`
-
----
+- Input: `{ hive?, limit? }`
+- Output: `{ count, entries }`
 
 ### `hive_get_todos`
+- Input: none
+- Output: `{ count, todos }`
 
-Get the general apiary todos.
-
-**Output:** Todos file text content
-
----
-
-### `hive_update_todos`
-
-Update the general apiary todos.
-
-**Input:** `{ "content": "APIARY GENERAL TODOS\n..." }`
-
-**Output:** `{ success, message }`
-
----
+### `hive_add_todo`
+- Input: `{ todo, priority?, status?, due_date?, notes? }`
+- Output: `{ success, message }`
 
 ## Environment Variables
 
-| Variable                      | Required    | Description                                               |
-| ----------------------------- | ----------- | --------------------------------------------------------- |
-| `GOOGLE_SERVICE_ACCOUNT_JSON` | Yes         | Full JSON string of the Google Service Account key        |
-| `HIVES_FOLDER_ID`             | Recommended | Google Drive folder ID for Hives/ (skip setup lookup)     |
-| `HIVES_E2E_FOLDER_NAME`       | No          | E2E subfolder name under `Hives/` (default: `e2e`)        |
-| `E2E_SPREADSHEET_NAME`        | No          | Spreadsheet name for e2e lookup (default: `hive_manager`) |
-| `PROFILES_FOLDER_ID`          | Recommended | Google Drive folder ID for profiles/ subfolder            |
-| `LOG_SHEET_ID`                | Recommended | Google Sheets ID for hive_logs spreadsheet                |
-| `PORT`                        | No          | HTTP server port (default: 3000, local dev only)          |
+| Variable                      | Required | Description |
+| --- | --- | --- |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | Yes | Full service-account JSON string |
+| `SPREADSHEET_ID`              | No | Pre-known spreadsheet ID (skip lookup/create) |
+| `HIVES_FOLDER_NAME`           | No | Base folder name for e2e lookup (default: `Hives`) |
+| `HIVES_FOLDER_ID`             | No | Base folder ID for e2e lookup (optional override) |
+| `HIVES_E2E_FOLDER_NAME`       | No | E2E subfolder name (default: `e2e`) |
+| `E2E_SPREADSHEET_NAME`        | No | E2E spreadsheet name (default: `hive_manager`) |
+| `PORT`                        | No | Local/server port (default: `3000`) |
