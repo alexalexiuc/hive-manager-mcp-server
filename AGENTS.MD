@@ -24,7 +24,8 @@ Guidance for coding agents working in `hive-manager-mcp-server`.
 - Build: `npm run build`
 - Lint: `npm run lint`
 - Tests: `npm run test`
-- E2E tests (Windows-safe): `vitest run tests/e2e`
+- E2E tests: `npm run test:e2e`
+- Deploy (local): `npm run deploy`
 
 ## Coding Conventions
 
@@ -44,9 +45,16 @@ Guidance for coding agents working in `hive-manager-mcp-server`.
 ## Environment and Secrets
 
 - Required runtime secret: `GOOGLE_SERVICE_ACCOUNT_JSON`.
-- Common IDs: `HIVES_FOLDER_ID`, `PROFILES_FOLDER_ID`, `LOG_SHEET_ID`.
+- Optional runtime var: `SPREADSHEET_ID`.
+- E2E lookup vars: `HIVES_FOLDER_NAME`, `HIVES_FOLDER_ID`, `HIVES_E2E_FOLDER_NAME`, `E2E_SPREADSHEET_NAME`.
 - Never commit real credentials, service-account JSON, or private IDs.
 - Use `.env`/Cloudflare secrets for sensitive values.
+
+## CI/CD Notes
+
+- CI workflow runs on `pull_request`.
+- Deploy workflow runs on `push` to `main` and `workflow_dispatch`.
+- GitHub Actions e2e requires secret `GOOGLE_SERVICE_ACCOUNT_JSON`; `HIVES_FOLDER_ID` can be a repository variable (optional).
 
 ## Testing Expectations
 
