@@ -125,3 +125,22 @@ export async function findFile(
 
   return null;
 }
+
+export async function findSpreadsheet(
+  drive: drive_v3.Drive,
+  name: string
+): Promise<string | null> {
+  const query = `name = '${escapeDriveQueryString(name)}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`;
+
+  const response = await drive.files.list({
+    q: query,
+    fields: 'files(id)',
+  });
+
+  const files = response.data.files;
+  if (files && files.length > 0 && files[0].id) {
+    return files[0].id;
+  }
+
+  return null;
+}

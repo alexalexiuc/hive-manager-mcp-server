@@ -1,41 +1,53 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { createDriveClient } from '../services/google.js';
-import { readFile, writeFile, findFile } from '../services/drive.js';
-import { TODOS_FILENAME } from '../constants.js';
+import { createSheetsClient } from '../services/google.js';
+import { getRows, appendRow } from '../services/sheets.js';
+import { APIARY_TODOS_SHEET_NAME } from '../constants.js';
 import type { Env } from '../types.js';
 
-const UpdateTodosSchema = z.object({
-  content: z.string().describe('The full new content for the todos_general.txt file'),
+const AddTodoSchema = z.object({
+  todo: z.string().describe('Task description'),
+  priority: z.enum(['low', 'medium', 'high']).optional().describe('Task priority'),
+  status: z.enum(['open', 'done']).optional().default('open').describe('Task status'),
+  due_date: z.string().optional().describe('Optional due date (YYYY-MM-DD)'),
+  notes: z.string().optional().describe('Additional notes'),
 });
 
-type UpdateTodosInput = z.infer<typeof UpdateTodosSchema>;
+type AddTodoInput = z.infer<typeof AddTodoSchema>;
 
 export function registerTodoTools(server: McpServer, env: Env) {
   server.tool(
     'hive_get_todos',
-    'Read the general apiary todos file (todos_general.txt) from the Hives/ folder in Google Drive.',
+    'Read all general apiary todos from the apiary_todos sheet.',
     {},
     async () => {
-      const drive = createDriveClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
 
-      const hivesFolderId = env.HIVES_FOLDER_ID;
-      if (!hivesFolderId) {
-        throw new Error('HIVES_FOLDER_ID is not set. Run hive_setup first.');
+      const spreadsheetId = env.SPREADSHEET_ID;
+      if (!spreadsheetId) {
+        throw new Error('SPREADSHEET_ID is not set. Run hive_setup first.');
       }
 
-      const fileId = await findFile(drive, TODOS_FILENAME, hivesFolderId);
-      if (!fileId) {
-        throw new Error('todos_general.txt not found. Run hive_setup first.');
-      }
+      const rows = await getRows(sheets, spreadsheetId, APIARY_TODOS_SHEET_NAME);
 
-      const content = await readFile(drive, fileId);
+      const todos = rows.map((row) => ({
+        todo: row[0] ?? '',
+        priority: row[1] ?? '',
+        status: row[2] ?? '',
+        due_date: row[3] ?? '',
+        notes: row[4] ?? '',
+        created_at: row[5] ?? '',
+        updated_at: row[6] ?? '',
+      }));
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: content,
+            text: JSON.stringify({
+              count: todos.length,
+              todos,
+            }),
           },
         ],
       };
@@ -43,23 +55,29 @@ export function registerTodoTools(server: McpServer, env: Env) {
   );
 
   server.tool(
-    'hive_update_todos',
-    'Overwrite the general apiary todos file (todos_general.txt) with new content.',
-    UpdateTodosSchema.shape,
-    async (input: UpdateTodosInput) => {
-      const drive = createDriveClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    'hive_add_todo',
+    'Add a new general apiary todo entry to the apiary_todos sheet.',
+    AddTodoSchema.shape,
+    async (input: AddTodoInput) => {
+      const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
 
-      const hivesFolderId = env.HIVES_FOLDER_ID;
-      if (!hivesFolderId) {
-        throw new Error('HIVES_FOLDER_ID is not set. Run hive_setup first.');
+      const spreadsheetId = env.SPREADSHEET_ID;
+      if (!spreadsheetId) {
+        throw new Error('SPREADSHEET_ID is not set. Run hive_setup first.');
       }
 
-      const fileId = await findFile(drive, TODOS_FILENAME, hivesFolderId);
-      if (!fileId) {
-        throw new Error('todos_general.txt not found. Run hive_setup first.');
-      }
+      const now = new Date().toISOString();
+      const row = [
+        input.todo,
+        input.priority ?? '',
+        input.status ?? 'open',
+        input.due_date ?? '',
+        input.notes ?? '',
+        now,
+        now,
+      ];
 
-      await writeFile(drive, fileId, input.content);
+      await appendRow(sheets, spreadsheetId, APIARY_TODOS_SHEET_NAME, row);
 
       return {
         content: [
@@ -67,7 +85,7 @@ export function registerTodoTools(server: McpServer, env: Env) {
             type: 'text' as const,
             text: JSON.stringify({
               success: true,
-              message: 'todos_general.txt updated successfully.',
+              message: 'Todo added successfully.',
             }),
           },
         ],

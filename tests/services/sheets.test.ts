@@ -6,15 +6,25 @@ describe('appendRow', () => {
 });
 
 describe('getRows', () => {
-  it.todo('returns rows from spreadsheet');
+  it.todo('returns rows from spreadsheet using A2:Z range');
   it.todo('returns empty array when no data');
   it.todo('handles API errors');
 });
 
-describe('createSheet', () => {
-  it.todo('creates spreadsheet with correct name');
-  it.todo('adds header row with LOG_SHEET_HEADERS');
-  it.todo('applies bold formatting to header row');
-  it.todo('freezes header row');
+describe('findRowIndex', () => {
+  it.todo('returns 1-based row index when value found in column');
+  it.todo('returns null when value not found');
+  it.todo('skips the header row when searching');
+});
+
+describe('updateRow', () => {
+  it.todo('calls spreadsheets.values.update with correct row reference');
+  it.todo('handles API errors');
+});
+
+describe('createSpreadsheet', () => {
+  it.todo('creates spreadsheet with logs, profiles, and apiary_todos sheets');
+  it.todo('adds correct header rows to each sheet');
+  it.todo('applies bold formatting and frozen row to all header rows');
   it.todo('returns spreadsheet ID');
 });
