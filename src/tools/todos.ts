@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createSheetsClient } from '../services/google.js';
 import { getRows, appendRow } from '../services/sheets.js';
-import { requireSpreadsheetId } from '../services/spreadsheet.js';
+import { requirePreparedSpreadsheetId } from '../services/spreadsheet.js';
 import { APIARY_TODOS_SHEET_NAME } from '../constants.js';
 import type { Env } from '../types.js';
 
@@ -22,7 +22,7 @@ export function registerTodoTools(server: McpServer, env: Env) {
     'Read all general apiary todos from the apiary_todos sheet.',
     {},
     async () => {
-      const spreadsheetId = await requireSpreadsheetId(env);
+      const spreadsheetId = await requirePreparedSpreadsheetId(env);
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
 
       const rows = await getRows(sheets, spreadsheetId, APIARY_TODOS_SHEET_NAME);
@@ -56,7 +56,7 @@ export function registerTodoTools(server: McpServer, env: Env) {
     'Add a new general apiary todo entry to the apiary_todos sheet.',
     AddTodoSchema.shape,
     async (input: AddTodoInput) => {
-      const spreadsheetId = await requireSpreadsheetId(env);
+      const spreadsheetId = await requirePreparedSpreadsheetId(env);
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
 
       const now = new Date().toISOString();

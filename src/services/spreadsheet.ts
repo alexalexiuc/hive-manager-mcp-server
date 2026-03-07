@@ -1,7 +1,8 @@
 import { SPREADSHEET_NAME } from '../constants.js';
 import type { Env } from '../types.js';
 import { findSpreadsheet } from './drive.js';
-import { createDriveClient } from './google.js';
+import { createDriveClient, createSheetsClient } from './google.js';
+import { ensureSpreadsheetStructure } from './sheets.js';
 
 export async function resolveSpreadsheetId(env: Env): Promise<string | null> {
   if (env.SPREADSHEET_ID && env.SPREADSHEET_ID.trim()) {
@@ -20,5 +21,12 @@ export async function requireSpreadsheetId(env: Env): Promise<string> {
     );
   }
 
+  return spreadsheetId;
+}
+
+export async function requirePreparedSpreadsheetId(env: Env): Promise<string> {
+  const spreadsheetId = await requireSpreadsheetId(env);
+  const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  await ensureSpreadsheetStructure(sheets, spreadsheetId);
   return spreadsheetId;
 }
