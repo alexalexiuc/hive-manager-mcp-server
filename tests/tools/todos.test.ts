@@ -1,14 +1,16 @@
 import { describe, it } from 'vitest';
 
 describe('hive_get_todos', () => {
-  it.todo('returns todos file content');
-  it.todo('throws error when HIVES_FOLDER_ID not set');
-  it.todo('throws error when todos_general.txt not found');
+  it.todo('returns all todos from apiary_todos sheet as JSON');
+  it.todo('returns empty list when no todos exist');
+  it.todo('throws error when SPREADSHEET_ID not set');
 });
 
-describe('hive_update_todos', () => {
-  it.todo('overwrites todos file with new content');
+describe('hive_add_todo', () => {
+  it.todo('appends new todo row to apiary_todos sheet');
+  it.todo('sets created_at and updated_at to current timestamp');
+  it.todo('defaults status to open when not provided');
   it.todo('returns success message');
-  it.todo('throws error when todos_general.txt not found');
-  it.todo('validates content is a non-empty string');
+  it.todo('throws error when SPREADSHEET_ID not set');
+  it.todo('validates todo is a non-empty string');
 });

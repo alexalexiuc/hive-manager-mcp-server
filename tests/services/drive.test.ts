@@ -15,3 +15,8 @@ describe('listFiles', () => {
   it.todo('filters by mimeType when provided');
   it.todo('returns empty array when folder is empty');
 });
+
+describe('findSpreadsheet', () => {
+  it.todo('returns spreadsheet ID when found by name');
+  it.todo('returns null when no spreadsheet with that name exists');
+});

@@ -7,9 +7,11 @@ export function mockSheetsClient() {
         append: vi.fn().mockResolvedValue({ data: {} }),
         get: vi.fn().mockResolvedValue({ data: { values: [] } }),
         update: vi.fn().mockResolvedValue({ data: {} }),
+        batchUpdate: vi.fn().mockResolvedValue({ data: {} }),
       },
       batchUpdate: vi.fn().mockResolvedValue({ data: {} }),
-      get: vi.fn().mockResolvedValue({ data: {} }),
+      get: vi.fn().mockResolvedValue({ data: { sheets: [{ properties: { sheetId: 0, title: 'logs' } }] } }),
+      create: vi.fn().mockResolvedValue({ data: { spreadsheetId: 'mock-spreadsheet-id' } }),
     },
   };
 }
@@ -25,56 +27,57 @@ export function mockDriveClient() {
   };
 }
 
-export function mockHiveProfile(hiveId: string, overrides?: Partial<Record<string, string>>): string {
-  const sep = '========================================';
-  const dash = '----------------------------------------';
+export function mockProfileRow(hive: string, overrides?: Partial<Record<string, string>>): string[] {
   const data = {
-    lastChecked: '2024-01-15',
-    location: 'Main apiary',
-    status: 'Strong',
-    boxes: '2',
-    frames: '8',
-    queenSeen: 'Yes',
+    last_check: '2024-01-15',
+    strength: 'strong',
+    queen_status: 'queen_seen',
+    brood_status: 'healthy',
+    food_status: 'medium',
     notes: 'Colony looks healthy',
     todos: 'Check honey super',
-    basicInfo: 'Italian bees, established 2023',
+    updated_at: '2024-01-15T10:00:00.000Z',
     ...overrides,
   };
 
   return [
-    `HIVE ${hiveId}`,
-    sep,
-    `Last checked : ${data.lastChecked}`,
-    `Location     : ${data.location}`,
-    `Status       : ${data.status}`,
-    `Boxes        : ${data.boxes}`,
-    `Frames       : ${data.frames}`,
-    `Queen seen   : ${data.queenSeen}`,
-    dash,
-    'NOTES:',
+    hive,
+    data.last_check,
+    data.strength,
+    data.queen_status,
+    data.brood_status,
+    data.food_status,
     data.notes,
-    '',
-    'TODOS:',
     data.todos,
-    '',
-    'BASIC INFO:',
-    data.basicInfo,
-    '',
-  ].join('\n');
+    data.updated_at,
+  ];
 }
 
-export function mockLogEntry(overrides?: Partial<Record<string, string>>): Record<string, string> {
-  return {
-    date: '2024-01-15',
-    hive_id: '1',
-    location: 'Main apiary',
-    overall_status: 'Strong',
-    boxes: '2',
-    frames: '8',
-    queen_seen: 'Yes',
-    notes: 'All looks good',
+export function mockLogRow(overrides?: Partial<Record<string, string>>): string[] {
+  const data = {
+    timestamp: '2024-01-15T10:00:00.000Z',
+    hive: '1',
+    event_type: 'inspection',
+    queen_seen: 'true',
+    brood_status: 'healthy',
+    food_status: 'medium',
     action_taken: 'Added honey super',
-    next_visit: '2024-01-29',
+    notes: 'All looks good',
+    next_check: '2024-01-29',
+    tags: 'inspection',
     ...overrides,
   };
+
+  return [
+    data.timestamp,
+    data.hive,
+    data.event_type,
+    data.queen_seen,
+    data.brood_status,
+    data.food_status,
+    data.action_taken,
+    data.notes,
+    data.next_check,
+    data.tags,
+  ];
 }

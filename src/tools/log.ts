@@ -1,24 +1,23 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { createDriveClient, createSheetsClient } from '../services/google.js';
-import { appendRow } from '../services/sheets.js';
-import { findFile, createTextFile, readFile, writeFile } from '../services/drive.js';
-import { OverallStatus, LOG_SHEET_NAME } from '../constants.js';
-import { buildProfileText, parseProfile } from './profile.js';
-import type { Env, HiveProfile } from '../types.js';
+import { createSheetsClient } from '../services/google.js';
+import { appendRow, findRowIndex, updateRow } from '../services/sheets.js';
+import { EventType, LOGS_SHEET_NAME, PROFILES_SHEET_NAME } from '../constants.js';
+import type { Env } from '../types.js';
 
 const LogEntrySchema = z.object({
-  hive_id: z.string().describe('Unique identifier for the hive (e.g. "1", "5", "north-apiary-1")'),
-  overall_status: z.nativeEnum(OverallStatus).describe('Overall hive health status'),
-  date: z.string().optional().describe('Inspection date in YYYY-MM-DD format. Defaults to today.'),
-  location: z.string().optional().describe('Physical location of the hive'),
-  boxes: z.number().int().positive().optional().describe('Number of boxes/supers on the hive'),
-  frames: z.number().int().positive().optional().describe('Number of frames with brood/bees'),
-  queen_seen: z.string().optional().describe('Was the queen seen? (Yes/No/Eggs only)'),
-  notes: z.string().optional().describe('Inspection notes and observations'),
-  action_taken: z.string().optional().describe('Actions taken during the inspection'),
-  next_visit: z.string().optional().describe('Date or notes for next planned visit'),
-  todos: z.string().optional().describe('New todos to add to the hive profile'),
+  hive: z.string().describe('Hive number or identifier (e.g. "5", "north-1")'),
+  event_type: z.nativeEnum(EventType).describe('Type of event: inspection, feeding, treatment, or harvest'),
+  timestamp: z.string().optional().describe('ISO timestamp of the event. Defaults to now.'),
+  queen_seen: z.string().optional().describe('Was the queen seen? (e.g. "true", "false", "eggs only")'),
+  brood_status: z.string().optional().describe('Brood condition (e.g. "healthy", "spotty", "none")'),
+  food_status: z.string().optional().describe('Food/honey level (e.g. "low", "medium", "full")'),
+  action_taken: z.string().optional().describe('Actions performed during this event'),
+  notes: z.string().optional().describe('Free-text notes and observations'),
+  next_check: z.string().optional().describe('Recommended next inspection date (YYYY-MM-DD)'),
+  tags: z.string().optional().describe('Optional comma-separated labels'),
+  strength: z.string().optional().describe('Colony strength for profile update (e.g. "strong", "medium", "weak")'),
+  todos: z.string().optional().describe('Todos to record in the hive profile'),
 });
 
 type LogEntryInput = z.infer<typeof LogEntrySchema>;
@@ -26,74 +25,72 @@ type LogEntryInput = z.infer<typeof LogEntrySchema>;
 export function registerLogTool(server: McpServer, env: Env) {
   server.tool(
     'hive_log_entry',
-    'Log a hive inspection entry. Appends a row to the hive_logs Google Sheet and auto-creates or updates the hive profile file in Drive.',
+    'Log a hive event. Appends a row to the logs sheet and creates or updates the hive profile row in the profiles sheet.',
     LogEntrySchema.shape,
     async (input: LogEntryInput) => {
-      const drive = createDriveClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
 
-      const date = input.date ?? new Date().toISOString().split('T')[0];
-
-      const sheetId = env.LOG_SHEET_ID;
-      if (!sheetId) {
-        throw new Error('LOG_SHEET_ID is not set. Run hive_setup first.');
+      const spreadsheetId = env.SPREADSHEET_ID;
+      if (!spreadsheetId) {
+        throw new Error('SPREADSHEET_ID is not set. Run hive_setup first.');
       }
 
-      const row = [
-        date,
-        input.hive_id,
-        input.location ?? '',
-        input.overall_status,
-        input.boxes?.toString() ?? '',
-        input.frames?.toString() ?? '',
+      const timestamp = input.timestamp ?? new Date().toISOString();
+      const date = timestamp.split('T')[0];
+
+      // Append to logs sheet
+      const logRow = [
+        timestamp,
+        input.hive,
+        input.event_type,
         input.queen_seen ?? '',
-        input.notes ?? '',
+        input.brood_status ?? '',
+        input.food_status ?? '',
         input.action_taken ?? '',
-        input.next_visit ?? '',
+        input.notes ?? '',
+        input.next_check ?? '',
+        input.tags ?? '',
       ];
 
-      await appendRow(sheets, sheetId, LOG_SHEET_NAME, row);
+      await appendRow(sheets, spreadsheetId, LOGS_SHEET_NAME, logRow);
 
-      const profilesFolderId = env.PROFILES_FOLDER_ID;
-      if (!profilesFolderId) {
-        throw new Error('PROFILES_FOLDER_ID is not set. Run hive_setup first.');
-      }
+      // Update or create profile row
+      const updatedAt = new Date().toISOString();
+      const rowIndex = await findRowIndex(sheets, spreadsheetId, PROFILES_SHEET_NAME, 0, input.hive);
 
-      const profileFileName = `${input.hive_id}.txt`;
-      const profileFileId = await findFile(drive, profileFileName, profilesFolderId);
-
-      const profileData: HiveProfile = {
-        hiveId: input.hive_id,
-        lastChecked: date,
-        location: input.location,
-        status: input.overall_status,
-        boxes: input.boxes,
-        frames: input.frames,
-        queenSeen: input.queen_seen,
-        notes: input.notes,
-        actionTaken: input.action_taken,
-        todos: input.todos,
-      };
-
-      if (!profileFileId) {
-        const content = buildProfileText(profileData);
-        await createTextFile(drive, profileFileName, content, profilesFolderId);
+      if (rowIndex === null) {
+        // Create new profile row
+        const profileRow = [
+          input.hive,
+          date,
+          input.strength ?? '',
+          input.queen_seen ?? '',
+          input.brood_status ?? '',
+          input.food_status ?? '',
+          input.notes ?? '',
+          input.todos ?? '',
+          updatedAt,
+        ];
+        await appendRow(sheets, spreadsheetId, PROFILES_SHEET_NAME, profileRow);
       } else {
-        const existingContent = await readFile(drive, profileFileId);
-        const existing = parseProfile(existingContent, input.hive_id);
-        const merged: HiveProfile = {
-          ...existing,
-          lastChecked: date,
-          location: input.location ?? existing.location,
-          status: input.overall_status,
-          boxes: input.boxes ?? existing.boxes,
-          frames: input.frames ?? existing.frames,
-          queenSeen: input.queen_seen ?? existing.queenSeen,
-          notes: input.notes ?? existing.notes,
-          todos: input.todos ?? existing.todos,
-        };
-        const updatedContent = buildProfileText(merged);
-        await writeFile(drive, profileFileId, updatedContent);
+        // Read existing profile to merge fields
+        const { getRows } = await import('../services/sheets.js');
+        const profileRows = await getRows(sheets, spreadsheetId, PROFILES_SHEET_NAME);
+        // rowIndex is 1-based; row 1 is header, so data starts at row 2 → profileRows[rowIndex - 2]
+        const existing = profileRows[rowIndex - 2] ?? [];
+
+        const mergedRow = [
+          input.hive,
+          date,
+          input.strength ?? existing[2] ?? '',
+          input.queen_seen ?? existing[3] ?? '',
+          input.brood_status ?? existing[4] ?? '',
+          input.food_status ?? existing[5] ?? '',
+          input.notes ?? existing[6] ?? '',
+          input.todos ?? existing[7] ?? '',
+          updatedAt,
+        ];
+        await updateRow(sheets, spreadsheetId, PROFILES_SHEET_NAME, rowIndex, mergedRow);
       }
 
       return {
@@ -102,7 +99,7 @@ export function registerLogTool(server: McpServer, env: Env) {
             type: 'text' as const,
             text: JSON.stringify({
               success: true,
-              message: `Logged inspection for hive ${input.hive_id} on ${date}.`,
+              message: `Logged ${input.event_type} for hive ${input.hive} at ${timestamp}.`,
             }),
           },
         ],

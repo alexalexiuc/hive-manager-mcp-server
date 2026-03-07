@@ -1,10 +1,11 @@
 import { describe, it } from 'vitest';
 
 describe('hive_log_entry', () => {
-  it.todo('appends row to sheet');
-  it.todo('creates new profile if hive does not exist');
-  it.todo('updates existing profile on re-inspection');
-  it.todo('validates required fields (hive_id, overall_status)');
+  it.todo('appends row to logs sheet with correct columns');
+  it.todo('creates new profile row if hive does not exist in profiles sheet');
+  it.todo('updates existing profile row on re-inspection');
+  it.todo('validates required fields (hive, event_type)');
   it.todo('handles sheet API error gracefully');
-  it.todo('uses today as default date when date not provided');
+  it.todo('uses current ISO timestamp as default when timestamp not provided');
+  it.todo('throws error when SPREADSHEET_ID not set');
 });
