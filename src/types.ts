@@ -21,6 +21,16 @@ export interface HiveProfile {
   notes?: string;
   todos?: string;
   updated_at?: string;
+  origin_hive?: string;
+  queen_race?: string;
+  queen_birth_year?: string;
+}
+
+export interface HiveRelocation {
+  timestamp: string;
+  hives: string;
+  location: string;
+  notes?: string;
 }
 
 export interface ApiaryTodo {

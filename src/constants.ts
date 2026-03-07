@@ -2,6 +2,7 @@ export const SPREADSHEET_NAME = 'hive_manager';
 export const LOGS_SHEET_NAME = 'logs';
 export const PROFILES_SHEET_NAME = 'profiles';
 export const APIARY_TODOS_SHEET_NAME = 'apiary_todos';
+export const RELOCATIONS_SHEET_NAME = 'relocations';
 
 export const LOGS_SHEET_HEADERS = [
   'timestamp',
@@ -26,6 +27,9 @@ export const PROFILES_SHEET_HEADERS = [
   'notes',
   'todos',
   'updated_at',
+  'origin_hive',
+  'queen_race',
+  'queen_birth_year',
 ] as const;
 
 export const APIARY_TODOS_SHEET_HEADERS = [
@@ -36,6 +40,13 @@ export const APIARY_TODOS_SHEET_HEADERS = [
   'notes',
   'created_at',
   'updated_at',
+] as const;
+
+export const RELOCATIONS_SHEET_HEADERS = [
+  'timestamp',
+  'hives',
+  'location',
+  'notes',
 ] as const;
 
 export enum EventType {

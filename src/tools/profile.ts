@@ -17,6 +17,9 @@ function rowToProfile(row: string[]): HiveProfile {
     notes: row[6] ?? '',
     todos: row[7] ?? '',
     updated_at: row[8] ?? '',
+    origin_hive: row[9] ?? '',
+    queen_race: row[10] ?? '',
+    queen_birth_year: row[11] ?? '',
   };
 }
 
@@ -32,6 +35,9 @@ const UpdateProfileSchema = z.object({
   food_status: z.string().optional().describe('Food/honey level'),
   notes: z.string().optional().describe('General notes'),
   todos: z.string().optional().describe('Upcoming actions or todos'),
+  origin_hive: z.string().optional().describe('The hive this hive was created from (e.g. via split or merge)'),
+  queen_race: z.string().optional().describe('Race or breed of the queen (e.g. "Carniolan", "Italian")'),
+  queen_birth_year: z.string().optional().describe('Year the queen was born or introduced (e.g. "2024")'),
 });
 
 type GetProfileInput = z.infer<typeof GetProfileSchema>;
@@ -93,6 +99,9 @@ export function registerProfileTools(server: McpServer, env: Env) {
           input.notes ?? '',
           input.todos ?? '',
           updatedAt,
+          input.origin_hive ?? '',
+          input.queen_race ?? '',
+          input.queen_birth_year ?? '',
         ];
         await appendRow(sheets, spreadsheetId, PROFILES_SHEET_NAME, profileRow);
       } else {
@@ -109,6 +118,9 @@ export function registerProfileTools(server: McpServer, env: Env) {
           input.notes ?? existing[6] ?? '',
           input.todos ?? existing[7] ?? '',
           updatedAt,
+          input.origin_hive ?? existing[9] ?? '',
+          input.queen_race ?? existing[10] ?? '',
+          input.queen_birth_year ?? existing[11] ?? '',
         ];
         await updateRow(sheets, spreadsheetId, PROFILES_SHEET_NAME, rowIndex, mergedRow);
       }
