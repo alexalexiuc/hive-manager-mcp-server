@@ -60,18 +60,25 @@ npx wrangler secret put HIVES_FOLDER_ID
 npx wrangler secret put PROFILES_FOLDER_ID
 npx wrangler secret put LOG_SHEET_ID
 
-# Deploy (same command used by CI)
+# Deploy (same command used by the GitHub Deploy workflow)
 npm run deploy
 ```
 
 ## CI E2E Configuration
 
-To run e2e tests in GitHub Actions (on `push` and `pull_request`), set these repository secrets:
+To run e2e tests in GitHub Actions (on non-`main` branch `push` and `pull_request`), set these repository secrets:
 
 - `GOOGLE_SERVICE_ACCOUNT_JSON`
+
+Set optional repository variable:
+
 - `HIVES_FOLDER_ID`
 
+`HIVES_FOLDER_ID` is optional for CI e2e. If omitted, the test looks up folder `Hives` by name.
+
 The CI e2e job checks spreadsheet access in `Hives/e2e` using `hive_manager` by default.
+
+The deploy workflow runs manually via `workflow_dispatch` (it no longer auto-runs on `main`).
 
 ## Adding to Claude as MCP Integration
 

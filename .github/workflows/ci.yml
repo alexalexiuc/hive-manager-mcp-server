@@ -2,6 +2,8 @@ name: CI
 
 on:
   push:
+    branches-ignore:
+      - main
   pull_request:
 
 permissions:
@@ -17,8 +19,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "24"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -45,8 +47,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "24"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -54,21 +56,16 @@ jobs:
       - name: Validate E2E secrets
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-          HIVES_FOLDER_ID: ${{ secrets.HIVES_FOLDER_ID }}
         run: |
           if [ -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
             echo "::error::Missing secret GOOGLE_SERVICE_ACCOUNT_JSON required for e2e tests."
-            exit 1
-          fi
-          if [ -z "$HIVES_FOLDER_ID" ]; then
-            echo "::error::Missing secret HIVES_FOLDER_ID required for e2e tests."
             exit 1
           fi
 
       - name: Run E2E tests
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-          HIVES_FOLDER_ID: ${{ secrets.HIVES_FOLDER_ID }}
+          HIVES_FOLDER_ID: 1zjIPbP14PhOAQbor5JB8qd_xy6uJHNPk # {DRIVE}/Hives/e2e folder
           HIVES_FOLDER_NAME: Hives
           HIVES_E2E_FOLDER_NAME: e2e
           E2E_SPREADSHEET_NAME: hive_manager
