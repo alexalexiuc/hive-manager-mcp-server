@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createSheetsClient } from '../services/google.js';
 import { appendRow, findRowIndex, updateRow } from '../services/sheets.js';
-import { requireSpreadsheetId } from '../services/spreadsheet.js';
+import { requirePreparedSpreadsheetId } from '../services/spreadsheet.js';
 import { EventType, LOGS_SHEET_NAME, PROFILES_SHEET_NAME } from '../constants.js';
 import type { Env } from '../types.js';
 
@@ -32,7 +32,7 @@ export function registerLogTool(server: McpServer, env: Env) {
       inputSchema: LogEntrySchema.shape,
     },
     async (input: LogEntryInput) => {
-      const spreadsheetId = await requireSpreadsheetId(env);
+      const spreadsheetId = await requirePreparedSpreadsheetId(env);
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
 
       const timestamp = input.timestamp ?? new Date().toISOString();

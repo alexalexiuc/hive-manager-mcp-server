@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createSheetsClient } from '../services/google.js';
 import { getRows } from '../services/sheets.js';
-import { requireSpreadsheetId } from '../services/spreadsheet.js';
+import { requirePreparedSpreadsheetId } from '../services/spreadsheet.js';
 import { LOGS_SHEET_NAME, DEFAULT_LOG_LIMIT, MAX_LOG_LIMIT } from '../constants.js';
 import type { Env } from '../types.js';
 
@@ -29,7 +29,7 @@ export function registerHistoryTool(server: McpServer, env: Env) {
       inputSchema: HistorySchema.shape,
     },
     async (input: HistoryInput) => {
-      const spreadsheetId = await requireSpreadsheetId(env);
+      const spreadsheetId = await requirePreparedSpreadsheetId(env);
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
 
       const rows = await getRows(sheets, spreadsheetId, LOGS_SHEET_NAME);
