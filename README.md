@@ -43,6 +43,7 @@ npx wrangler login
 
 # required secret
 npx wrangler secret put GOOGLE_SERVICE_ACCOUNT_JSON
+npx wrangler secret put AUTH_API_KEY
 
 # deploy
 npm run deploy
@@ -51,6 +52,28 @@ npm run deploy
 Notes:
 - `npm run deploy` runs `npm run build && wrangler deploy`.
 - `SPREADSHEET_ID` is optional. If unset, `hive_setup` finds/creates `hive_manager`.
+
+## MCP Auth (Important)
+
+This server requires bearer-token auth on requests.
+
+- Required env/secret: `AUTH_API_KEY`
+- Header format: `Authorization: Bearer <AUTH_API_KEY>`
+
+If the key is missing or invalid, the server returns `401 Unauthorized`.
+
+## Suggested Project Instructions (for chat clients using this MCP)
+
+Copy/paste this into your Project/Instructions:
+
+```text
+When using the hive-manager MCP server, always include Authorization header:
+Authorization: Bearer <AUTH_API_KEY>
+
+Do not call MCP tools without this header.
+If a request returns 401 Unauthorized, ask me to verify AUTH_API_KEY first.
+Use hive_setup before first write operation if spreadsheet structure may be missing.
+```
 
 ## GitHub Actions
 
@@ -103,6 +126,7 @@ If `HIVES_FOLDER_ID` is not set, e2e resolves `Hives` by folder name.
 
 | Variable                      | Required | Description |
 | --- | --- | --- |
+| `AUTH_API_KEY`                | Yes | Bearer API key required for all requests |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | Yes | Full service-account JSON string |
 | `SPREADSHEET_ID`              | No | Pre-known spreadsheet ID (skip lookup/create) |
 | `HIVES_FOLDER_NAME`           | No | Base folder name for e2e lookup (default: `Hives`) |
