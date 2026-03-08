@@ -7,8 +7,18 @@ import {
   RELOCATIONS_SHEET_NAME,
   SPREADSHEET_NAME,
 } from "../../src/constants.js";
-import { findFolder, findSpreadsheetInFolder } from "../../src/services/drive.js";
-import { createDriveClient, createSheetsClient } from "../../src/services/google.js";
+import {
+  execWithBackoffRetry,
+  isRetryableGoogleQuotaError,
+} from "../../src/shared/retry.js";
+import {
+  findFolder,
+  findSpreadsheetInFolder,
+} from "../../src/services/drive.js";
+import {
+  createDriveClient,
+  createSheetsClient,
+} from "../../src/services/google.js";
 import type { Env } from "../../src/types.js";
 
 type E2EConfig = {
@@ -90,25 +100,19 @@ export async function prepareAndClearSpreadsheet(
   }
 
   const sheets = createSheetsClient(config.serviceAccountJson);
-
-  await Promise.all([
-    sheets.spreadsheets.values.clear({
+  await execWithBackoffRetry(async () => {
+    await sheets.spreadsheets.values.batchClear({
       spreadsheetId,
-      range: `${LOGS_SHEET_NAME}!A2:Z`,
-    }),
-    sheets.spreadsheets.values.clear({
-      spreadsheetId,
-      range: `${PROFILES_SHEET_NAME}!A2:Z`,
-    }),
-    sheets.spreadsheets.values.clear({
-      spreadsheetId,
-      range: `${APIARY_TODOS_SHEET_NAME}!A2:Z`,
-    }),
-    sheets.spreadsheets.values.clear({
-      spreadsheetId,
-      range: `${RELOCATIONS_SHEET_NAME}!A2:Z`,
-    }),
-  ]);
+      requestBody: {
+        ranges: [
+          `${LOGS_SHEET_NAME}!A2:Z`,
+          `${PROFILES_SHEET_NAME}!A2:Z`,
+          `${APIARY_TODOS_SHEET_NAME}!A2:Z`,
+          `${RELOCATIONS_SHEET_NAME}!A2:Z`,
+        ],
+      },
+    });
+  });
 }
 
 export function buildE2EEnv(config: E2EConfig, spreadsheetId: string): Env {
@@ -129,28 +133,51 @@ export async function callMcpMethod(
   params: Record<string, unknown>,
   id = 1,
 ): Promise<Record<string, unknown>> {
-  const request = new Request("https://example.com/mcp", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      accept: "application/json, text/event-stream",
-      authorization: `Bearer ${env.AUTH_API_KEY ?? ""}`,
-    },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id,
-      method,
-      params,
-    }),
+  return execWithBackoffRetry(async () => {
+    const request = new Request("https://example.com/mcp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        authorization: `Bearer ${env.AUTH_API_KEY ?? ""}`,
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id,
+        method,
+        params,
+      }),
+    });
+
+    const response = await worker.fetch(request, env);
+    const text = await response.text();
+    if (response.status !== 200) {
+      throw new Error(`MCP request failed with ${response.status}: ${text}`);
+    }
+
+    const rpc = JSON.parse(text) as Record<string, unknown>;
+    const rpcError = rpc.error as { message?: unknown } | undefined;
+    if (
+      rpcError?.message &&
+      isRetryableGoogleQuotaError(String(rpcError.message))
+    ) {
+      throw new Error(String(rpcError.message));
+    }
+
+    const result = rpc.result as
+      | { content?: Array<{ text?: unknown }>; isError?: unknown }
+      | undefined;
+    const firstText = result?.content?.[0]?.text;
+    if (
+      result?.isError &&
+      typeof firstText === "string" &&
+      isRetryableGoogleQuotaError(firstText)
+    ) {
+      throw new Error(firstText);
+    }
+
+    return rpc;
   });
-
-  const response = await worker.fetch(request, env);
-  const text = await response.text();
-  if (response.status !== 200) {
-    throw new Error(`MCP request failed with ${response.status}: ${text}`);
-  }
-
-  return JSON.parse(text) as Record<string, unknown>;
 }
 
 export async function callTool(
@@ -178,8 +205,14 @@ export function extractToolJson(
   const text = content?.[0]?.text;
 
   if (typeof text !== "string") {
-    throw new Error(`Unexpected tool response payload: ${JSON.stringify(rpcResponse)}`);
+    throw new Error(
+      `Unexpected tool response payload: ${JSON.stringify(rpcResponse)}`,
+    );
   }
 
-  return JSON.parse(text) as Record<string, unknown>;
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    throw new Error(`Tool response is not valid JSON: ${text}`);
+  }
 }
