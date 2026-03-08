@@ -131,6 +131,16 @@ export function registerTodoTools(server: McpServer, env: Env) {
       inputSchema: UpdateTodoSchemaBase.shape,
     },
     async (input: UpdateTodoInput) => {
+      const { todo, priority, status, due_date, notes } = input;
+      if (
+        todo === undefined &&
+        priority === undefined &&
+        status === undefined &&
+        due_date === undefined &&
+        notes === undefined
+      ) {
+        throw new Error('Provide at least one field to update.');
+      }
       const parsedInput = UpdateTodoSchema.parse(input);
       const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
       const rows = await getRows(sheets, spreadsheetId, APIARY_TODOS_SHEET_NAME);
