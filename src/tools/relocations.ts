@@ -3,6 +3,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { appendRow, getRows } from '../services/sheets.js';
 import { requirePreparedSpreadsheetId } from '../services/spreadsheet.js';
 import { RELOCATION_COL, RELOCATIONS_SHEET_NAME } from '../constants.js';
+import { isoTimestampSchema } from '../shared/validation.js';
 import { toolResponse } from './toolResponse.js';
 import type { Env, HiveRelocation } from '../types.js';
 
@@ -24,8 +25,7 @@ const LogRelocationSchema = z.object({
   location: z
     .string()
     .describe('Name or description of the destination location'),
-  timestamp: z
-    .string()
+  timestamp: isoTimestampSchema
     .optional()
     .describe('ISO timestamp of the move. Defaults to now.'),
   notes: z

@@ -3,6 +3,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { getRows, appendRow } from '../services/sheets.js';
 import { requirePreparedSpreadsheetId } from '../services/spreadsheet.js';
 import { APIARY_TODOS_SHEET_NAME, TODO_COL } from '../constants.js';
+import { yyyyMmDdDateSchema } from '../shared/validation.js';
 import { toolResponse } from './toolResponse.js';
 import type { Env } from '../types.js';
 
@@ -10,7 +11,9 @@ const AddTodoSchema = z.object({
   todo: z.string().describe('Task description'),
   priority: z.enum(['low', 'medium', 'high']).optional().describe('Task priority'),
   status: z.enum(['open', 'done']).optional().default('open').describe('Task status'),
-  due_date: z.string().optional().describe('Optional due date (YYYY-MM-DD)'),
+  due_date: yyyyMmDdDateSchema
+    .optional()
+    .describe('Optional due date (YYYY-MM-DD)'),
   notes: z.string().optional().describe('Additional notes'),
 });
 
