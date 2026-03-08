@@ -23,5 +23,17 @@ export async function handleMcpRequest(
   });
 
   await server.connect(transport);
-  return transport.handleRequest(request);
+  try {
+    return await transport.handleRequest(request);
+  } finally {
+    try {
+      await server.close();
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.warn(`Failed to close MCP server cleanly: ${error.message}`);
+      } else {
+        console.warn('Failed to close MCP server cleanly.', error);
+      }
+    }
+  }
 }
