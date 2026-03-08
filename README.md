@@ -88,11 +88,13 @@ For CI e2e:
 
 ### `hive_setup`
 
+- Description: Set up a Google Spreadsheet for hive data. Requires `x-spreadsheet-id` and ensures required sheets exist.
 - Input: none
 - Output: `{ success, spreadsheet_url }`
 
 ### `hive_log_entry`
 
+- Description: Log a hive event in `logs` and create or update the corresponding profile row in `profiles`.
 - Input:
   - required: `hive`, `event_type` (`inspection|feeding|treatment|harvest`)
   - optional: `timestamp`, `queen_seen`, `brood_status`, `food_status`, `action_taken`, `notes`, `next_check`, `tags`, `strength`, `todos`, `origin_hive`, `queen_race`, `queen_birth_year`
@@ -100,56 +102,67 @@ For CI e2e:
 
 ### `hive_get_profile`
 
+- Description: Read the current profile for a specific hive from the `profiles` sheet.
 - Input: `{ hive }`
 - Output: profile JSON row
 
 ### `hive_update_profile`
 
+- Description: Update specific fields in a hive profile row in the `profiles` sheet.
 - Input: `{ hive, strength?, queen_status?, brood_status?, food_status?, notes?, todos?, origin_hive?, queen_race?, queen_birth_year? }`
 - Output: `{ success, message }`
 
 ### `hive_get_all_profiles`
 
+- Description: List all hive profiles from the `profiles` sheet.
 - Input: none
 - Output: `{ count, profiles }`
 
 ### `hive_get_log_history`
 
+- Description: Retrieve event log history from `logs`, with optional hive filtering and result limits.
 - Input: `{ hive?, limit? }`
 - Output: `{ count, entries }`
 
 ### `hive_get_todos`
 
+- Description: Read all general apiary todos from the `apiary_todos` sheet.
 - Input: none
 - Output: `{ count, todos }`
 
 ### `hive_add_todo`
 
+- Description: Add a new general apiary todo entry to `apiary_todos`.
 - Input: `{ todo, priority?, status?, due_date?, notes? }`
 - Output: `{ success, message }`
 
 ### `hive_update_todo`
 
+- Description: Update fields in an existing apiary todo identified by `created_at`.
 - Input: `{ created_at, todo?, priority?, status?, due_date?, notes? }`
 - Output: `{ success, message, created_at }`
 
 ### `hive_mark_todo_done`
 
+- Description: Mark an existing apiary todo as `done`, identified by `created_at`.
 - Input: `{ created_at, notes? }`
 - Output: `{ success, message, created_at }`
 
 ### `hive_log_relocation`
 
+- Description: Record relocation of one or more hives to a new location in `relocations`.
 - Input: `{ hives, location, timestamp?, notes? }`
 - Output: `{ success, message }`
 
 ### `hive_get_relocations`
 
+- Description: Retrieve relocation history from `relocations`, optionally filtered by hive.
 - Input: `{ hive?, limit? }`
 - Output: `{ count, entries }`
 
 ### `hive_get_current_location`
 
+- Description: Get the most recent recorded location for a hive based on `relocations`.
 - Input: `{ hive }`
 - Output: `{ hive, current_location, since?, notes?, message? }`
 
