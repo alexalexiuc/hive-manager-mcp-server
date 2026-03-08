@@ -46,6 +46,35 @@ function toErrorPayload(error: unknown): { error: string; error_type?: string; d
   };
 }
 
+function isAuthorized(request: Request, env: Env): boolean {
+  const apiKey = env.AUTH_API_KEY;
+  if (!apiKey) {
+    return false;
+  }
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader) {
+    return false;
+  }
+  const parts = authHeader.split(" ");
+  if (parts.length !== 2 || parts[0] !== "Bearer") {
+    return false;
+  }
+  const provided = parts[1];
+
+  // Use constant-time comparison to prevent timing attacks
+  const encoder = new TextEncoder();
+  const a = encoder.encode(provided);
+  const b = encoder.encode(apiKey);
+  if (a.byteLength !== b.byteLength) {
+    return false;
+  }
+  let diff = 0;
+  for (let i = 0; i < a.byteLength; i++) {
+    diff |= a[i]! ^ b[i]!;
+  }
+  return diff === 0;
+}
+
 async function handleRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
 
@@ -87,6 +116,16 @@ export default {
     logRequest(requestId, request);
 
     try {
+      if (!isAuthorized(request, env)) {
+        console.warn(`[${requestId}] AUTH ${request.method} ${new URL(request.url).pathname} - unauthorized`);
+        const response = new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+        logResponse(requestId, request, response, Date.now() - startedAt);
+        return response;
+      }
+
       const response = await handleRequest(request, env);
       logResponse(requestId, request, response, Date.now() - startedAt);
       return response;
