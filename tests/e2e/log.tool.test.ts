@@ -12,18 +12,17 @@ import {
 } from "./e2eUtils.js";
 
 const config = getE2EConfig();
-const describeIfConfigured = config.serviceAccountJson && config.spreadsheetId ? describe : describe.skip;
+const describeIfConfigured = config.serviceAccountJson ? describe : describe.skip;
 
 describeIfConfigured("E2E tool: hive_log_entry", () => {
   it("writes a logs row and creates/updates profile row", async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
     await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
-    const env = buildE2EEnv(config);
+    const env = buildE2EEnv(config, ctx.spreadsheetId);
 
-    await callTool(env, ctx.spreadsheetId, "hive_setup", {}, 201);
+    await callTool(env, "hive_setup", {}, 201);
     const rpcResponse = await callTool(
       env,
-      ctx.spreadsheetId,
       "hive_log_entry",
       {
         hive: "1",

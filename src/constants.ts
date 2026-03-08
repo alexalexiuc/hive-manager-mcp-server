@@ -63,5 +63,3 @@ export const GOOGLE_SCOPES = [
 
 export const DEFAULT_LOG_LIMIT = 50;
 export const MAX_LOG_LIMIT = 500;
-
-export const SPREADSHEET_ID_HEADER = 'x-spreadsheet-id';

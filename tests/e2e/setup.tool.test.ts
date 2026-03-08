@@ -11,15 +11,15 @@ import {
 } from "./e2eUtils.js";
 
 const config = getE2EConfig();
-const describeIfConfigured = config.serviceAccountJson && config.spreadsheetId ? describe : describe.skip;
+const describeIfConfigured = config.serviceAccountJson ? describe : describe.skip;
 
 describeIfConfigured("E2E tool: hive_setup", () => {
   it("returns spreadsheet url and ensures required sheets exist", async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
     await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
-    const env = buildE2EEnv(config);
+    const env = buildE2EEnv(config, ctx.spreadsheetId);
 
-    const rpcResponse = await callTool(env, ctx.spreadsheetId, "hive_setup", {}, 101);
+    const rpcResponse = await callTool(env, "hive_setup", {}, 101);
     const payload = extractToolJson(rpcResponse);
 
     expect(payload.success).toBe(true);

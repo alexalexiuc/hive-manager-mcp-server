@@ -43,6 +43,7 @@ npx wrangler login
 
 # required secret
 npx wrangler secret put GOOGLE_SERVICE_ACCOUNT_JSON
+npx wrangler secret put AUTH_API_KEY
 
 # deploy
 npm run deploy
@@ -50,25 +51,27 @@ npm run deploy
 
 Notes:
 - `npm run deploy` runs `npm run build && wrangler deploy`.
-- Spreadsheet selection is request-scoped via `x-spreadsheet-id` header only.
+- `SPREADSHEET_ID` is optional. If unset, `hive_setup` finds/creates `hive_manager`.
 
-## Request Spreadsheet Header (Important)
+## MCP Auth (Important)
 
-Pass spreadsheet id per request using header:
+This server requires bearer-token auth on requests.
 
-- Required header: `x-spreadsheet-id: <GOOGLE_SPREADSHEET_ID>`
+- Required env/secret: `AUTH_API_KEY`
+- Header format: `Authorization: Bearer <AUTH_API_KEY>`
 
-This enables each requestor/client to target its own sheet without a shared authorization key layer.
+If the key is missing or invalid, the server returns `401 Unauthorized`.
 
 ## Suggested Project Instructions (for chat clients using this MCP)
 
 Copy/paste this into your Project/Instructions:
 
 ```text
-When using the hive-manager MCP server, always include:
-x-spreadsheet-id: <GOOGLE_SPREADSHEET_ID>
+When using the hive-manager MCP server, always include Authorization header:
+Authorization: Bearer <AUTH_API_KEY>
 
 Do not call MCP tools without this header.
+If a request returns 401 Unauthorized, ask me to verify AUTH_API_KEY first.
 Use hive_setup before first write operation if spreadsheet structure may be missing.
 ```
 
@@ -79,7 +82,9 @@ Use hive_setup before first write operation if spreadsheet structure may be miss
 
 For CI e2e:
 - Required repository secret: `GOOGLE_SERVICE_ACCOUNT_JSON`
-- Required repository variable/secret: `E2E_SPREADSHEET_ID`
+- Optional repository variable: `HIVES_FOLDER_ID`
+
+If `HIVES_FOLDER_ID` is not set, e2e resolves `Hives` by folder name.
 
 ## MCP Tools
 
@@ -121,6 +126,11 @@ For CI e2e:
 
 | Variable                      | Required | Description |
 | --- | --- | --- |
-| `E2E_SPREADSHEET_ID`          | Yes (e2e) | Spreadsheet id used by e2e tests and request header |
+| `AUTH_API_KEY`                | Yes | Bearer API key required for all requests |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | Yes | Full service-account JSON string |
+| `SPREADSHEET_ID`              | No | Pre-known spreadsheet ID (skip lookup/create) |
+| `HIVES_FOLDER_NAME`           | No | Base folder name for e2e lookup (default: `Hives`) |
+| `HIVES_FOLDER_ID`             | No | Base folder ID for e2e lookup (optional override) |
+| `HIVES_E2E_FOLDER_NAME`       | No | E2E subfolder name (default: `e2e`) |
+| `E2E_SPREADSHEET_NAME`        | No | E2E spreadsheet name (default: `hive_manager`) |
 | `PORT`                        | No | Local/server port (default: `3000`) |
