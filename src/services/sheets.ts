@@ -18,6 +18,54 @@ const REQUIRED_SHEETS = [
   RELOCATIONS_SHEET_NAME,
 ] as const;
 
+const STRUCTURE_CACHE_TTL_MS = 5 * 60 * 1000;
+const MAX_STRUCTURE_CACHE_ENTRIES = 200;
+
+type StructureCacheEntry = {
+  ensuredAt: number;
+  inFlight?: Promise<void>;
+};
+
+const structureCache = new Map<string, StructureCacheEntry>();
+
+function getFreshStructureCacheEntry(
+  spreadsheetId: string,
+  now: number
+): StructureCacheEntry | undefined {
+  const existing = structureCache.get(spreadsheetId);
+  if (!existing) {
+    return undefined;
+  }
+
+  if (existing.inFlight) {
+    return existing;
+  }
+
+  if (now - existing.ensuredAt <= STRUCTURE_CACHE_TTL_MS) {
+    return existing;
+  }
+
+  structureCache.delete(spreadsheetId);
+  return undefined;
+}
+
+function setStructureCacheEntry(
+  spreadsheetId: string,
+  entry: StructureCacheEntry
+): void {
+  if (
+    !structureCache.has(spreadsheetId) &&
+    structureCache.size >= MAX_STRUCTURE_CACHE_ENTRIES
+  ) {
+    const oldestKey = structureCache.keys().next().value;
+    if (oldestKey) {
+      structureCache.delete(oldestKey);
+    }
+  }
+
+  structureCache.set(spreadsheetId, entry);
+}
+
 function getSheetIdByTitle(
   spreadsheet: sheets_v4.Schema$Spreadsheet,
   title: string
@@ -251,4 +299,36 @@ export async function ensureSpreadsheetStructure(
       });
     });
   }
+}
+
+export async function ensureSpreadsheetStructureCached(
+  sheets: sheets_v4.Sheets,
+  spreadsheetId: string
+): Promise<void> {
+  const now = Date.now();
+  const cached = getFreshStructureCacheEntry(spreadsheetId, now);
+
+  if (cached?.inFlight) {
+    await cached.inFlight;
+    return;
+  }
+
+  if (cached) {
+    return;
+  }
+
+  let inFlight: Promise<void>;
+  inFlight = (async () => {
+    await ensureSpreadsheetStructure(sheets, spreadsheetId);
+    setStructureCacheEntry(spreadsheetId, { ensuredAt: Date.now() });
+  })().catch((error: unknown) => {
+    const current = structureCache.get(spreadsheetId);
+    if (current?.inFlight === inFlight) {
+      structureCache.delete(spreadsheetId);
+    }
+    throw error;
+  });
+
+  setStructureCacheEntry(spreadsheetId, { ensuredAt: 0, inFlight });
+  await inFlight;
 }
