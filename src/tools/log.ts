@@ -9,7 +9,6 @@ import {
 import { requirePreparedSpreadsheetId } from '../services/spreadsheet.js';
 import {
   EventType,
-  LOG_COL,
   LOGS_SHEET_NAME,
   PROFILE_COL,
   PROFILES_SHEET_NAME,
@@ -52,7 +51,7 @@ const LogEntrySchema = z.object({
     .string()
     .optional()
     .describe(
-      'Colony strength for profile update (e.g. "strong", "medium", "weak")',
+      'Colony strength for profile update (e.g. "strong", "medium", "weak")'
     ),
   todos: z.string().optional().describe('Todos to record in the hive profile'),
   origin_hive: z
@@ -107,8 +106,8 @@ export function registerLogTool(server: McpServer, env: Env) {
         sheets,
         spreadsheetId,
         PROFILES_SHEET_NAME,
-        LOG_COL.hive,
-        input.hive,
+        PROFILE_COL.hive,
+        input.hive
       );
 
       if (rowIndex === null) {
@@ -133,7 +132,7 @@ export function registerLogTool(server: McpServer, env: Env) {
         const profileRows = await getRows(
           sheets,
           spreadsheetId,
-          PROFILES_SHEET_NAME,
+          PROFILES_SHEET_NAME
         );
         // rowIndex is 1-based; row 1 is header, so data starts at row 2 → profileRows[rowIndex - 2]
         const existing = profileRows[rowIndex - 2] ?? [];
@@ -150,14 +149,16 @@ export function registerLogTool(server: McpServer, env: Env) {
           updatedAt,
           input.origin_hive ?? existing[PROFILE_COL.origin_hive] ?? '',
           input.queen_race ?? existing[PROFILE_COL.queen_race] ?? '',
-          input.queen_birth_year ?? existing[PROFILE_COL.queen_birth_year] ?? '',
+          input.queen_birth_year ??
+            existing[PROFILE_COL.queen_birth_year] ??
+            '',
         ];
         await updateRow(
           sheets,
           spreadsheetId,
           PROFILES_SHEET_NAME,
           rowIndex,
-          mergedRow,
+          mergedRow
         );
       }
 
@@ -165,6 +166,6 @@ export function registerLogTool(server: McpServer, env: Env) {
         success: true,
         message: `Logged ${input.event_type} for hive ${input.hive} at ${timestamp}.`,
       });
-    },
+    }
   );
 }
