@@ -19,6 +19,11 @@ type E2EConfig = {
   spreadsheetId?: string;
 };
 
+export type RequiredE2EConfig = {
+  serviceAccountJson: string;
+  spreadsheetId: string;
+};
+
 function getEnvValue(name: string): string | undefined {
   const value = process.env[name];
   return value && value.trim() ? value.trim() : undefined;
@@ -31,6 +36,29 @@ export function getE2EConfig(): E2EConfig {
   };
 }
 
+export function requireE2EConfig(): RequiredE2EConfig {
+  const config = getE2EConfig();
+  const missing: string[] = [];
+
+  if (!config.serviceAccountJson) {
+    missing.push("GOOGLE_SERVICE_ACCOUNT_JSON");
+  }
+  if (!config.spreadsheetId) {
+    missing.push("E2E_SPREADSHEET_ID");
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required e2e environment variables: ${missing.join(", ")}`,
+    );
+  }
+
+  return {
+    serviceAccountJson: config.serviceAccountJson!,
+    spreadsheetId: config.spreadsheetId!,
+  };
+}
+
 export type E2ESpreadsheetContext = {
   spreadsheetId: string;
 };
@@ -39,9 +67,7 @@ export async function resolveE2ESpreadsheetContext(
   config: E2EConfig,
 ): Promise<E2ESpreadsheetContext> {
   if (!config.spreadsheetId) {
-    throw new Error(
-      "E2E_SPREADSHEET_ID is required for e2e tests.",
-    );
+    throw new Error("E2E_SPREADSHEET_ID is required for e2e tests.");
   }
 
   return { spreadsheetId: config.spreadsheetId };
@@ -78,6 +104,7 @@ export function buildE2EEnv(config: E2EConfig): Env {
 
   return {
     GOOGLE_SERVICE_ACCOUNT_JSON: config.serviceAccountJson,
+    AUTH_API_KEY: getEnvValue("AUTH_API_KEY"),
   };
 }
 
@@ -94,6 +121,7 @@ export async function callMcpMethod(
       headers: {
         "content-type": "application/json",
         accept: "application/json, text/event-stream",
+        authorization: `Bearer ${env.AUTH_API_KEY ?? ""}`,
         [SPREADSHEET_ID_HEADER]: spreadsheetId,
       },
       body: JSON.stringify({

@@ -6,15 +6,14 @@ import {
   buildE2EEnv,
   callTool,
   extractToolJson,
-  getE2EConfig,
   prepareAndClearSpreadsheet,
+  requireE2EConfig,
   resolveE2ESpreadsheetContext,
 } from "./e2eUtils.js";
 
-const config = getE2EConfig();
-const describeIfConfigured = config.serviceAccountJson && config.spreadsheetId ? describe : describe.skip;
+const config = requireE2EConfig();
 
-describeIfConfigured("E2E tool: hive_get_log_history", () => {
+describe("E2E tool: hive_get_log_history", () => {
   it("returns filtered history that matches logs sheet rows", async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
     await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);

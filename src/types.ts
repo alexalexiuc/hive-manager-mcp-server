@@ -47,4 +47,5 @@ export interface Env {
   GOOGLE_SERVICE_ACCOUNT_JSON: string;
   REQUEST_SPREADSHEET_ID?: string;
   PORT?: string;
+  AUTH_API_KEY?: string;
 }

@@ -6,15 +6,14 @@ import {
   buildE2EEnv,
   callTool,
   extractToolJson,
-  getE2EConfig,
   prepareAndClearSpreadsheet,
+  requireE2EConfig,
   resolveE2ESpreadsheetContext,
 } from "./e2eUtils.js";
 
-const config = getE2EConfig();
-const describeIfConfigured = config.serviceAccountJson && config.spreadsheetId ? describe : describe.skip;
+const config = requireE2EConfig();
 
-describeIfConfigured("E2E tool: hive_log_entry", () => {
+describe("E2E tool: hive_log_entry", () => {
   it("writes a logs row and creates/updates profile row", async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
     await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
@@ -41,7 +40,11 @@ describeIfConfigured("E2E tool: hive_log_entry", () => {
 
     const sheets = createSheetsClient(config.serviceAccountJson!);
     const logRows = await getRows(sheets, ctx.spreadsheetId, LOGS_SHEET_NAME);
-    const profileRows = await getRows(sheets, ctx.spreadsheetId, PROFILES_SHEET_NAME);
+    const profileRows = await getRows(
+      sheets,
+      ctx.spreadsheetId,
+      PROFILES_SHEET_NAME,
+    );
 
     expect(logRows).toHaveLength(1);
     expect(logRows[0][1]).toBe("1");

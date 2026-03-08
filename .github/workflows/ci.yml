@@ -53,17 +53,25 @@ jobs:
       - name: Validate E2E secrets
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          AUTH_API_KEY: ${{ secrets.AUTH_API_KEY }}
+          E2E_SPREADSHEET_ID: ${{ vars.E2E_SPREADSHEET_ID || secrets.E2E_SPREADSHEET_ID }}
         run: |
           if [ -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
             echo "::error::Missing secret GOOGLE_SERVICE_ACCOUNT_JSON required for e2e tests."
+            exit 1
+          fi
+          if [ -z "$AUTH_API_KEY" ]; then
+            echo "::error::Missing secret AUTH_API_KEY required for e2e tests."
+            exit 1
+          fi
+          if [ -z "$E2E_SPREADSHEET_ID" ]; then
+            echo "::error::Missing E2E_SPREADSHEET_ID required for e2e tests."
             exit 1
           fi
 
       - name: Run E2E tests
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-          HIVES_FOLDER_ID: ${{ vars.HIVES_FOLDER_ID }}
-          HIVES_FOLDER_NAME: Hives
-          HIVES_E2E_FOLDER_NAME: e2e
-          E2E_SPREADSHEET_NAME: hive_manager
+          AUTH_API_KEY: ${{ secrets.AUTH_API_KEY }}
+          E2E_SPREADSHEET_ID: ${{ vars.E2E_SPREADSHEET_ID || secrets.E2E_SPREADSHEET_ID }}
         run: npm run test:e2e
