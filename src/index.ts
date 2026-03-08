@@ -155,7 +155,11 @@ export default {
             JSON.stringify({ error: "Unauthorized" }),
             {
               status: 401,
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                "WWW-Authenticate":
+                  'Bearer error="invalid_token", error_description="Unauthorized"',
+              },
             },
           );
           logResponse(requestId, request, response, Date.now() - startedAt);
