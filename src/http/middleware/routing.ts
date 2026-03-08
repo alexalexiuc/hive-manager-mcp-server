@@ -1,4 +1,5 @@
 import { getRoute } from '../routes.js';
+import { notFoundResponse } from '../responses.js';
 import type { RequestContext, WorkerHandler } from '../types.js';
 
 export function withRouteResolution(next: WorkerHandler): WorkerHandler {
@@ -10,7 +11,7 @@ export function withRouteResolution(next: WorkerHandler): WorkerHandler {
 
 export async function routeRequest(context: RequestContext): Promise<Response> {
   if (!context.route) {
-    return new Response('Not Found', { status: 404 });
+    return notFoundResponse(context);
   }
 
   return context.route.handler(context.request, context.env);

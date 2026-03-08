@@ -8,7 +8,7 @@ MCP server for beekeeping data, backed by Google Sheets and Google Drive.
 - Entry points: `src/index.ts`, `src/server.ts`
 - Storage:
   - Google Spreadsheet `hive_manager`
-  - Sheets: `logs`, `profiles`, `apiary_todos`
+  - Sheets: `logs`, `profiles`, `apiary_todos`, `relocations`
 
 ## Google Setup
 
@@ -95,7 +95,7 @@ For CI e2e:
 
 - Input:
   - required: `hive`, `event_type` (`inspection|feeding|treatment|harvest`)
-  - optional: `timestamp`, `queen_seen`, `brood_status`, `food_status`, `action_taken`, `notes`, `next_check`, `tags`, `strength`, `todos`
+  - optional: `timestamp`, `queen_seen`, `brood_status`, `food_status`, `action_taken`, `notes`, `next_check`, `tags`, `strength`, `todos`, `origin_hive`, `queen_race`, `queen_birth_year`
 - Output: `{ success, message }`
 
 ### `hive_get_profile`
@@ -105,7 +105,7 @@ For CI e2e:
 
 ### `hive_update_profile`
 
-- Input: `{ hive, strength?, queen_status?, brood_status?, food_status?, notes?, todos? }`
+- Input: `{ hive, strength?, queen_status?, brood_status?, food_status?, notes?, todos?, origin_hive?, queen_race?, queen_birth_year? }`
 - Output: `{ success, message }`
 
 ### `hive_get_all_profiles`
@@ -127,6 +127,31 @@ For CI e2e:
 
 - Input: `{ todo, priority?, status?, due_date?, notes? }`
 - Output: `{ success, message }`
+
+### `hive_update_todo`
+
+- Input: `{ created_at, todo?, priority?, status?, due_date?, notes? }`
+- Output: `{ success, message, created_at }`
+
+### `hive_mark_todo_done`
+
+- Input: `{ created_at, notes? }`
+- Output: `{ success, message, created_at }`
+
+### `hive_log_relocation`
+
+- Input: `{ hives, location, timestamp?, notes? }`
+- Output: `{ success, message }`
+
+### `hive_get_relocations`
+
+- Input: `{ hive?, limit? }`
+- Output: `{ count, entries }`
+
+### `hive_get_current_location`
+
+- Input: `{ hive }`
+- Output: `{ hive, current_location, since?, notes?, message? }`
 
 ## Environment Variables
 

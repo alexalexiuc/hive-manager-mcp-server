@@ -30,6 +30,21 @@ export function unauthorizedResponse(): Response {
   });
 }
 
+export function notFoundResponse(context: RequestContext): Response {
+  return new Response(
+    JSON.stringify({
+      error: 'Not Found',
+      request_id: context.requestId,
+      method: context.request.method,
+      path: context.url.pathname,
+    }),
+    {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' },
+    }
+  );
+}
+
 export function internalErrorResponse(
   context: RequestContext,
   error: unknown
