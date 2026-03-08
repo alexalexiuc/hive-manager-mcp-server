@@ -1,4 +1,5 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { SPREADSHEET_ID_HEADER } from "./constants.js";
 import { createMcpServer } from "./server.js";
 import type { Env } from "./types.js";
 
@@ -62,32 +63,12 @@ function toErrorPayload(error: unknown): {
   };
 }
 
-function isAuthorized(request: Request, env: Env): boolean {
-  const apiKey = env.AUTH_API_KEY;
-  if (!apiKey) {
-    return false;
-  }
-  const authHeader = request.headers.get("Authorization");
-  if (!authHeader) {
-    return false;
-  }
-  const [scheme, provided] = authHeader.split(" ");
-  if (scheme.toLowerCase() !== "bearer" || !provided) {
-    return false;
-  }
-
-  // Use constant-time comparison to prevent timing attacks
-  const encoder = new TextEncoder();
-  const a = encoder.encode(provided);
-  const b = encoder.encode(apiKey);
-  if (a.byteLength !== b.byteLength) {
-    return false;
-  }
-  let diff = 0;
-  for (let i = 0; i < a.byteLength; i++) {
-    diff |= a[i]! ^ b[i]!;
-  }
-  return diff === 0;
+function withRequestSpreadsheetId(env: Env, request: Request): Env {
+  const spreadsheetId = request.headers.get(SPREADSHEET_ID_HEADER) ?? undefined;
+  return {
+    ...env,
+    REQUEST_SPREADSHEET_ID: spreadsheetId,
+  };
 }
 
 async function handleRequest(request: Request, env: Env): Promise<Response> {
@@ -108,7 +89,8 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   }
 
   if (url.pathname === "/mcp" && request.method === "POST") {
-    const server = createMcpServer(env);
+    const requestScopedEnv = withRequestSpreadsheetId(env, request);
+    const server = createMcpServer(requestScopedEnv);
 
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
@@ -131,21 +113,6 @@ export default {
     logRequest(requestId, request);
 
     try {
-      if (!isAuthorized(request, env)) {
-        console.warn(
-          `[${requestId}] AUTH ${request.method} ${new URL(request.url).pathname} - unauthorized`,
-        );
-        const response = new Response(
-          JSON.stringify({ error: "Unauthorized" }),
-          {
-            status: 401,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
-        logResponse(requestId, request, response, Date.now() - startedAt);
-        return response;
-      }
-
       const response = await handleRequest(request, env);
       logResponse(requestId, request, response, Date.now() - startedAt);
       return response;

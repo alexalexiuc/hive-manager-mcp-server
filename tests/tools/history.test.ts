@@ -7,6 +7,6 @@ describe('hive_get_log_history', () => {
   it.todo('uses default limit of 50 when not provided');
   it.todo('returns last N entries (most recent)');
   it.todo('returns empty list when no entries match filter');
-  it.todo('throws error when SPREADSHEET_ID not set');
+  it.todo('throws error when x-spreadsheet-id header missing');
   it.todo('maps row columns to correct field names (timestamp, hive, event_type, etc.)');
 });
