@@ -9,6 +9,7 @@ import {
   APIARY_TODOS_SHEET_HEADERS,
   RELOCATIONS_SHEET_HEADERS,
 } from '../constants.js';
+import { execWithBackoffRetry } from '../shared/retry.js';
 
 const REQUIRED_SHEETS = [
   LOGS_SHEET_NAME,
@@ -36,13 +37,15 @@ export async function appendRow(
   sheetName: string,
   values: (string | number | undefined)[]
 ): Promise<void> {
-  await sheets.spreadsheets.values.append({
-    spreadsheetId,
-    range: `${sheetName}!A1`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: {
-      values: [values],
-    },
+  await execWithBackoffRetry(async () => {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: `${sheetName}!A1`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [values],
+      },
+    });
   });
 }
 
@@ -51,9 +54,11 @@ export async function getRows(
   spreadsheetId: string,
   sheetName: string
 ): Promise<string[][]> {
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: `${sheetName}!A2:Z`,
+  const response = await execWithBackoffRetry(async () => {
+    return sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A2:Z`,
+    });
   });
 
   return (response.data.values as string[][]) || [];
@@ -66,9 +71,11 @@ export async function findRowIndex(
   columnIndex: number,
   value: string
 ): Promise<number | null> {
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: `${sheetName}!A1:Z`,
+  const response = await execWithBackoffRetry(async () => {
+    return sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A1:Z`,
+    });
   });
 
   const rows = (response.data.values as string[][]) || [];
@@ -87,13 +94,15 @@ export async function updateRow(
   rowIndex: number,
   values: (string | number | undefined)[]
 ): Promise<void> {
-  await sheets.spreadsheets.values.update({
-    spreadsheetId,
-    range: `${sheetName}!A${rowIndex}`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: {
-      values: [values],
-    },
+  await execWithBackoffRetry(async () => {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `${sheetName}!A${rowIndex}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [values],
+      },
+    });
   });
 }
 
@@ -102,12 +111,14 @@ export async function createSpreadsheet(
   title: string,
   driveService: drive_v3.Drive
 ): Promise<string> {
-  const response = await driveService.files.create({
-    requestBody: {
-      name: title,
-      mimeType: 'application/vnd.google-apps.spreadsheet',
-    },
-    fields: 'id',
+  const response = await execWithBackoffRetry(async () => {
+    return driveService.files.create({
+      requestBody: {
+        name: title,
+        mimeType: 'application/vnd.google-apps.spreadsheet',
+      },
+      fields: 'id',
+    });
   });
 
   const spreadsheetId = response.data.id as string;
@@ -119,7 +130,9 @@ export async function ensureSpreadsheetStructure(
   sheets: sheets_v4.Sheets,
   spreadsheetId: string
 ): Promise<void> {
-  const initial = await sheets.spreadsheets.get({ spreadsheetId });
+  const initial = await execWithBackoffRetry(async () => {
+    return sheets.spreadsheets.get({ spreadsheetId });
+  });
   const hasLogs = getSheetIdByTitle(initial.data, LOGS_SHEET_NAME) !== null;
   const hasProfiles = getSheetIdByTitle(initial.data, PROFILES_SHEET_NAME) !== null;
   const hasTodos = getSheetIdByTitle(initial.data, APIARY_TODOS_SHEET_NAME) !== null;
@@ -169,30 +182,36 @@ export async function ensureSpreadsheetStructure(
   }
 
   if (setupRequests.length > 0) {
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId,
-      requestBody: {
-        requests: setupRequests,
-      },
+    await execWithBackoffRetry(async () => {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: setupRequests,
+        },
+      });
     });
   }
 
   // Ensure canonical headers are always present.
-  await sheets.spreadsheets.values.batchUpdate({
-    spreadsheetId,
-    requestBody: {
-      valueInputOption: 'USER_ENTERED',
-      data: [
-        { range: `${LOGS_SHEET_NAME}!A1`, values: [[...LOGS_SHEET_HEADERS]] },
-        { range: `${PROFILES_SHEET_NAME}!A1`, values: [[...PROFILES_SHEET_HEADERS]] },
-        { range: `${APIARY_TODOS_SHEET_NAME}!A1`, values: [[...APIARY_TODOS_SHEET_HEADERS]] },
-        { range: `${RELOCATIONS_SHEET_NAME}!A1`, values: [[...RELOCATIONS_SHEET_HEADERS]] },
-      ],
-    },
+  await execWithBackoffRetry(async () => {
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        valueInputOption: 'USER_ENTERED',
+        data: [
+          { range: `${LOGS_SHEET_NAME}!A1`, values: [[...LOGS_SHEET_HEADERS]] },
+          { range: `${PROFILES_SHEET_NAME}!A1`, values: [[...PROFILES_SHEET_HEADERS]] },
+          { range: `${APIARY_TODOS_SHEET_NAME}!A1`, values: [[...APIARY_TODOS_SHEET_HEADERS]] },
+          { range: `${RELOCATIONS_SHEET_NAME}!A1`, values: [[...RELOCATIONS_SHEET_HEADERS]] },
+        ],
+      },
+    });
   });
 
   // Apply bold header + frozen row formatting to required sheets.
-  const updated = await sheets.spreadsheets.get({ spreadsheetId });
+  const updated = await execWithBackoffRetry(async () => {
+    return sheets.spreadsheets.get({ spreadsheetId });
+  });
   const formatRequests: sheets_v4.Schema$Request[] = [];
   for (const title of REQUIRED_SHEETS) {
     const sheetId = getSheetIdByTitle(updated.data, title);
@@ -223,11 +242,13 @@ export async function ensureSpreadsheetStructure(
   }
 
   if (formatRequests.length > 0) {
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId,
-      requestBody: {
-        requests: formatRequests,
-      },
+    await execWithBackoffRetry(async () => {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: formatRequests,
+        },
+      });
     });
   }
 }

@@ -26,6 +26,10 @@ Guidance for coding agents working in `hive-manager-mcp-server`.
 - Tests: `npm run test`
 - E2E tests: `npm run test:e2e`
 - Deploy (local): `npm run deploy`
+- Vitest config split:
+  - Unit: `vitest.config.ts`
+  - E2E (serial): `vitest.e2e.config.ts`
+  - Shared defaults: `vitest.shared.ts`
 
 ## Coding Conventions
 
@@ -67,4 +71,5 @@ Guidance for coding agents working in `hive-manager-mcp-server`.
 
 - Keep diffs minimal and easy to review.
 - Update docs (`README.md`) when commands, env vars, or behavior changes.
+- Update e2e and unit tests for any behavior changes.
 - Ensure imports and build output remain ESM-compatible.
