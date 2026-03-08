@@ -1,10 +1,9 @@
-import { describe, expect, it } from "vitest";
-import {
-  findFolder,
-  findSpreadsheetInFolder,
-} from "../../src/services/drive.js";
+import { beforeAll, describe, expect, it } from "vitest";
 import { createDriveClient } from "../../src/services/google.js";
-import { getE2EConfig } from "./e2eUtils.js";
+import {
+  getE2EConfig,
+  resolveE2ESpreadsheet,
+} from "./e2eUtils.js";
 
 const config = getE2EConfig();
 const describeIfConfigured = config.serviceAccountJson
@@ -12,43 +11,15 @@ const describeIfConfigured = config.serviceAccountJson
   : describe.skip;
 
 describeIfConfigured("Drive E2E: spreadsheet access", () => {
+  let spreadsheetId: string;
+  let e2eFolderId: string;
+
+  beforeAll(async () => {
+    ({ spreadsheetId, e2eFolderId } = await resolveE2ESpreadsheet(config));
+  }, 60_000);
+
   it("can find spreadsheet in Hives/e2e and read metadata", async () => {
-    if (!config.serviceAccountJson) {
-      throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is required for e2e tests.");
-    }
-
-    const drive = createDriveClient(config.serviceAccountJson);
-
-    const hivesFolderId =
-      config.hivesFolderId ?? (await findFolder(drive, config.hivesFolderName));
-    if (!hivesFolderId) {
-      throw new Error(
-        `Could not find '${config.hivesFolderName}' folder in Google Drive.`,
-      );
-    }
-
-    const e2eFolderId = await findFolder(
-      drive,
-      config.hivesE2eFolderName,
-      hivesFolderId,
-    );
-    if (!e2eFolderId) {
-      throw new Error(
-        `Could not find '${config.hivesFolderName}/${config.hivesE2eFolderName}' folder in Google Drive.`,
-      );
-    }
-
-    const spreadsheetId = await findSpreadsheetInFolder(
-      drive,
-      config.spreadsheetName,
-      e2eFolderId,
-    );
-    if (!spreadsheetId) {
-      throw new Error(
-        `Could not find spreadsheet '${config.spreadsheetName}' in '${config.hivesFolderName}/${config.hivesE2eFolderName}'.`,
-      );
-    }
-
+    const drive = createDriveClient(config.serviceAccountJson!);
     const metadata = await drive.files.get({
       fileId: spreadsheetId,
       fields: "id,name,mimeType,parents",

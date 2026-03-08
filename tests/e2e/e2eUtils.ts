@@ -29,13 +29,19 @@ export function getE2EConfig(): E2EConfig {
   };
 }
 
+export type E2ESpreadsheetResolution = {
+  spreadsheetId: string;
+  e2eFolderId: string;
+};
+
 /**
- * Resolves the E2E test spreadsheet ID by navigating the Drive folder hierarchy.
+ * Resolves the E2E test spreadsheet by navigating the Drive folder hierarchy.
+ * Returns the spreadsheet ID and the e2e folder ID.
  * Throws a descriptive error if any step fails.
  */
-export async function resolveE2ESpreadsheetId(
+export async function resolveE2ESpreadsheet(
   config: E2EConfig,
-): Promise<string> {
+): Promise<E2ESpreadsheetResolution> {
   if (!config.serviceAccountJson) {
     throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is required for e2e tests.");
   }
@@ -73,6 +79,17 @@ export async function resolveE2ESpreadsheetId(
     );
   }
 
+  return { spreadsheetId, e2eFolderId };
+}
+
+/**
+ * Resolves the E2E test spreadsheet ID by navigating the Drive folder hierarchy.
+ * Throws a descriptive error if any step fails.
+ */
+export async function resolveE2ESpreadsheetId(
+  config: E2EConfig,
+): Promise<string> {
+  const { spreadsheetId } = await resolveE2ESpreadsheet(config);
   return spreadsheetId;
 }
 
