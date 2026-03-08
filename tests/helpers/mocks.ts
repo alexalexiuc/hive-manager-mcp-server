@@ -37,6 +37,9 @@ export function mockProfileRow(hive: string, overrides?: Partial<Record<string, 
     notes: 'Colony looks healthy',
     todos: 'Check honey super',
     updated_at: '2024-01-15T10:00:00.000Z',
+    origin_hive: '',
+    queen_race: '',
+    queen_birth_year: '',
     ...overrides,
   };
 
@@ -50,6 +53,9 @@ export function mockProfileRow(hive: string, overrides?: Partial<Record<string, 
     data.notes,
     data.todos,
     data.updated_at,
+    data.origin_hive,
+    data.queen_race,
+    data.queen_birth_year,
   ];
 }
 
@@ -80,4 +86,16 @@ export function mockLogRow(overrides?: Partial<Record<string, string>>): string[
     data.next_check,
     data.tags,
   ];
+}
+
+export function mockRelocationRow(overrides?: Partial<Record<string, string>>): string[] {
+  const data = {
+    timestamp: '2024-05-01T08:00:00.000Z',
+    hives: '1,2,3',
+    location: 'South field',
+    notes: 'Moved for clover season',
+    ...overrides,
+  };
+
+  return [data.timestamp, data.hives, data.location, data.notes];
 }

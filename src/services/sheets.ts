@@ -3,15 +3,18 @@ import {
   LOGS_SHEET_NAME,
   PROFILES_SHEET_NAME,
   APIARY_TODOS_SHEET_NAME,
+  RELOCATIONS_SHEET_NAME,
   LOGS_SHEET_HEADERS,
   PROFILES_SHEET_HEADERS,
   APIARY_TODOS_SHEET_HEADERS,
+  RELOCATIONS_SHEET_HEADERS,
 } from '../constants.js';
 
 const REQUIRED_SHEETS = [
   LOGS_SHEET_NAME,
   PROFILES_SHEET_NAME,
   APIARY_TODOS_SHEET_NAME,
+  RELOCATIONS_SHEET_NAME,
 ] as const;
 
 function getSheetIdByTitle(
@@ -120,6 +123,7 @@ export async function ensureSpreadsheetStructure(
   const hasLogs = getSheetIdByTitle(initial.data, LOGS_SHEET_NAME) !== null;
   const hasProfiles = getSheetIdByTitle(initial.data, PROFILES_SHEET_NAME) !== null;
   const hasTodos = getSheetIdByTitle(initial.data, APIARY_TODOS_SHEET_NAME) !== null;
+  const hasRelocations = getSheetIdByTitle(initial.data, RELOCATIONS_SHEET_NAME) !== null;
   const defaultSheetId = getSheetIdByTitle(initial.data, 'Sheet1');
 
   const setupRequests: sheets_v4.Schema$Request[] = [];
@@ -156,6 +160,14 @@ export async function ensureSpreadsheetStructure(
     });
   }
 
+  if (!hasRelocations) {
+    setupRequests.push({
+      addSheet: {
+        properties: { title: RELOCATIONS_SHEET_NAME },
+      },
+    });
+  }
+
   if (setupRequests.length > 0) {
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId,
@@ -174,6 +186,7 @@ export async function ensureSpreadsheetStructure(
         { range: `${LOGS_SHEET_NAME}!A1`, values: [[...LOGS_SHEET_HEADERS]] },
         { range: `${PROFILES_SHEET_NAME}!A1`, values: [[...PROFILES_SHEET_HEADERS]] },
         { range: `${APIARY_TODOS_SHEET_NAME}!A1`, values: [[...APIARY_TODOS_SHEET_HEADERS]] },
+        { range: `${RELOCATIONS_SHEET_NAME}!A1`, values: [[...RELOCATIONS_SHEET_HEADERS]] },
       ],
     },
   });
