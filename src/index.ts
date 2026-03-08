@@ -13,25 +13,41 @@ function logRequest(requestId: string, request: Request): void {
   console.info(`[${requestId}] -> ${request.method} ${url.pathname}`);
 }
 
-function logResponse(requestId: string, request: Request, response: Response, durationMs: number): void {
+function logResponse(
+  requestId: string,
+  request: Request,
+  response: Response,
+  durationMs: number,
+): void {
   const url = new URL(request.url);
-  console.info(`[${requestId}] <- ${response.status} ${request.method} ${url.pathname} (${durationMs}ms)`);
+  console.info(
+    `[${requestId}] <- ${response.status} ${request.method} ${url.pathname} (${durationMs}ms)`,
+  );
 }
 
 function logError(requestId: string, request: Request, error: unknown): void {
   const url = new URL(request.url);
   if (error instanceof Error) {
-    console.error(`[${requestId}] !! ${request.method} ${url.pathname} failed: ${error.message}`);
+    console.error(
+      `[${requestId}] !! ${request.method} ${url.pathname} failed: ${error.message}`,
+    );
     if (error.stack) {
       console.error(error.stack);
     }
     return;
   }
 
-  console.error(`[${requestId}] !! ${request.method} ${url.pathname} failed with non-Error`, error);
+  console.error(
+    `[${requestId}] !! ${request.method} ${url.pathname} failed with non-Error`,
+    error,
+  );
 }
 
-function toErrorPayload(error: unknown): { error: string; error_type?: string; details?: string } {
+function toErrorPayload(error: unknown): {
+  error: string;
+  error_type?: string;
+  details?: string;
+} {
   if (error instanceof Error) {
     return {
       error: "Request failed",
@@ -44,6 +60,34 @@ function toErrorPayload(error: unknown): { error: string; error_type?: string; d
     error: "Request failed",
     details: typeof error === "string" ? error : "Unknown error",
   };
+}
+
+function isAuthorized(request: Request, env: Env): boolean {
+  const apiKey = env.AUTH_API_KEY;
+  if (!apiKey) {
+    return false;
+  }
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader) {
+    return false;
+  }
+  const [scheme, provided] = authHeader.split(" ");
+  if (scheme.toLowerCase() !== "bearer" || !provided) {
+    return false;
+  }
+
+  // Use constant-time comparison to prevent timing attacks
+  const encoder = new TextEncoder();
+  const a = encoder.encode(provided);
+  const b = encoder.encode(apiKey);
+  if (a.byteLength !== b.byteLength) {
+    return false;
+  }
+  let diff = 0;
+  for (let i = 0; i < a.byteLength; i++) {
+    diff |= a[i]! ^ b[i]!;
+  }
+  return diff === 0;
 }
 
 async function handleRequest(request: Request, env: Env): Promise<Response> {
@@ -87,6 +131,21 @@ export default {
     logRequest(requestId, request);
 
     try {
+      if (!isAuthorized(request, env)) {
+        console.warn(
+          `[${requestId}] AUTH ${request.method} ${new URL(request.url).pathname} - unauthorized`,
+        );
+        const response = new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+        logResponse(requestId, request, response, Date.now() - startedAt);
+        return response;
+      }
+
       const response = await handleRequest(request, env);
       logResponse(requestId, request, response, Date.now() - startedAt);
       return response;
