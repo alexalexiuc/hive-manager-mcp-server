@@ -6,7 +6,7 @@ import {
   updateRow,
   appendRow,
 } from '../services/sheets.js';
-import { requirePreparedSpreadsheetId } from '../services/spreadsheet.js';
+import { requireSpreadsheetContext } from '../services/spreadsheet.js';
 import { PROFILE_COL, PROFILES_SHEET_NAME } from '../constants.js';
 import { toolResponse } from './toolResponse.js';
 import type { Env, HiveProfile } from '../types.js';
@@ -74,7 +74,7 @@ export function registerProfileTools(server: McpServer, env: Env) {
       inputSchema: GetProfileSchema.shape,
     },
     async (input: GetProfileInput) => {
-      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
+      const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
 
       const rowIndex = await findRowIndex(
         sheets,
@@ -103,7 +103,7 @@ export function registerProfileTools(server: McpServer, env: Env) {
       inputSchema: UpdateProfileSchema.shape,
     },
     async (input: UpdateProfileInput) => {
-      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
+      const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
 
       const updatedAt = new Date().toISOString();
       const rowIndex = await findRowIndex(
@@ -171,7 +171,7 @@ export function registerProfileTools(server: McpServer, env: Env) {
       description: 'List all hive profiles from the profiles sheet.',
     },
     async () => {
-      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
+      const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
 
       const rows = await getRows(sheets, spreadsheetId, PROFILES_SHEET_NAME);
       const profiles = rows.map((row) => rowToProfile(row));

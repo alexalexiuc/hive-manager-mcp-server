@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { appendRow, getRows } from '../services/sheets.js';
-import { requirePreparedSpreadsheetId } from '../services/spreadsheet.js';
+import { requireSpreadsheetContext } from '../services/spreadsheet.js';
 import { RELOCATION_COL, RELOCATIONS_SHEET_NAME } from '../constants.js';
 import { isoTimestampSchema } from '../shared/validation.js';
 import { toolResponse } from './toolResponse.js';
@@ -71,7 +71,7 @@ export function registerRelocationTools(server: McpServer, env: Env) {
       inputSchema: LogRelocationSchema.shape,
     },
     async (input: LogRelocationInput) => {
-      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
+      const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
 
       const timestamp = input.timestamp ?? new Date().toISOString();
       const row = [timestamp, input.hives, input.location, input.notes ?? ''];
@@ -92,7 +92,7 @@ export function registerRelocationTools(server: McpServer, env: Env) {
       inputSchema: GetRelocationsSchema.shape,
     },
     async (input: GetRelocationsInput) => {
-      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
+      const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
 
       const allRows = await getRows(
         sheets,
@@ -130,7 +130,7 @@ export function registerRelocationTools(server: McpServer, env: Env) {
       inputSchema: GetCurrentLocationSchema.shape,
     },
     async (input: GetCurrentLocationInput) => {
-      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
+      const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
 
       const allRows = await getRows(
         sheets,

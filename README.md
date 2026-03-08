@@ -71,7 +71,7 @@ When using the hive-manager MCP server, always include:
 x-spreadsheet-id: <GOOGLE_SPREADSHEET_ID>
 
 Do not call MCP tools without this header.
-Use hive_setup before first write operation if spreadsheet structure may be missing.
+Use hive_setup before the first read/write operation if spreadsheet structure may be missing.
 ```
 
 ## GitHub Actions

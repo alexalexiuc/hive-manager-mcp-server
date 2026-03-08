@@ -6,7 +6,7 @@ import {
   updateRow,
   getRows,
 } from '../services/sheets.js';
-import { requirePreparedSpreadsheetId } from '../services/spreadsheet.js';
+import { requireSpreadsheetContext } from '../services/spreadsheet.js';
 import {
   EventType,
   LOGS_SHEET_NAME,
@@ -78,7 +78,7 @@ export function registerLogTool(server: McpServer, env: Env) {
       inputSchema: LogEntrySchema.shape,
     },
     async (input: LogEntryInput) => {
-      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
+      const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
 
       const timestamp = input.timestamp ?? new Date().toISOString();
       const date = timestamp.split('T')[0];

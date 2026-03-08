@@ -19,7 +19,6 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.8.0",
     "googleapis": "^144.0.0",
-    "promise-cachex": "^1.8.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

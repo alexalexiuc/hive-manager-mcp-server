@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { getRows, appendRow, updateRow } from '../services/sheets.js';
-import { requirePreparedSpreadsheetId } from '../services/spreadsheet.js';
+import { requireSpreadsheetContext } from '../services/spreadsheet.js';
 import { APIARY_TODOS_SHEET_NAME, TODO_COL } from '../constants.js';
 import { isoTimestampSchema, yyyyMmDdDateSchema } from '../shared/validation.js';
 import { toolResponse } from './toolResponse.js';
@@ -88,7 +88,7 @@ export function registerTodoTools(server: McpServer, env: Env) {
       description: 'Read all general apiary todos from the apiary_todos sheet.',
     },
     async () => {
-      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
+      const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
 
       const rows = await getRows(sheets, spreadsheetId, APIARY_TODOS_SHEET_NAME);
       const todos = rows.map((row) => rowToTodo(row));
@@ -104,7 +104,7 @@ export function registerTodoTools(server: McpServer, env: Env) {
       inputSchema: AddTodoSchema.shape,
     },
     async (input: AddTodoInput) => {
-      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
+      const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
 
       const now = new Date().toISOString();
       const row = [
@@ -132,7 +132,7 @@ export function registerTodoTools(server: McpServer, env: Env) {
     },
     async (input: UpdateTodoInput) => {
       const parsedInput = UpdateTodoSchema.parse(input);
-      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
+      const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
       const rows = await getRows(sheets, spreadsheetId, APIARY_TODOS_SHEET_NAME);
       const rowIndex = findTodoRowIndexByCreatedAt(rows, parsedInput.created_at);
 
@@ -172,7 +172,7 @@ export function registerTodoTools(server: McpServer, env: Env) {
       inputSchema: MarkTodoDoneSchema.shape,
     },
     async (input: MarkTodoDoneInput) => {
-      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
+      const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
       const rows = await getRows(sheets, spreadsheetId, APIARY_TODOS_SHEET_NAME);
       const rowIndex = findTodoRowIndexByCreatedAt(rows, input.created_at);
 

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { getRows } from '../services/sheets.js';
-import { requirePreparedSpreadsheetId } from '../services/spreadsheet.js';
+import { requireSpreadsheetContext } from '../services/spreadsheet.js';
 import {
   LOG_COL,
   LOGS_SHEET_NAME,
@@ -56,7 +56,7 @@ export function registerHistoryTool(server: McpServer, env: Env) {
       inputSchema: HistorySchema.shape,
     },
     async (input: HistoryInput) => {
-      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
+      const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
 
       const rows = await getRows(sheets, spreadsheetId, LOGS_SHEET_NAME);
 
