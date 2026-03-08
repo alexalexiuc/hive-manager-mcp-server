@@ -1,45 +1,61 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { createSheetsClient } from '../services/google.js';
 import { appendRow, getRows } from '../services/sheets.js';
 import { requirePreparedSpreadsheetId } from '../services/spreadsheet.js';
-import { RELOCATIONS_SHEET_NAME } from '../constants.js';
+import { RELOCATION_COL, RELOCATIONS_SHEET_NAME } from '../constants.js';
+import { toolResponse } from './toolResponse.js';
 import type { Env, HiveRelocation } from '../types.js';
 
 function rowToRelocation(row: string[]): HiveRelocation {
   return {
-    timestamp: row[0] ?? '',
-    hives: row[1] ?? '',
-    location: row[2] ?? '',
-    notes: row[3] ?? '',
+    timestamp: row[RELOCATION_COL.timestamp] ?? '',
+    hives: row[RELOCATION_COL.hives] ?? '',
+    location: row[RELOCATION_COL.location] ?? '',
+    notes: row[RELOCATION_COL.notes] ?? '',
   };
 }
 
 const LogRelocationSchema = z.object({
   hives: z
     .string()
-    .describe('Comma-separated list of hive identifiers being relocated (e.g. "1,2,5")'),
-  location: z.string().describe('Name or description of the destination location'),
-  timestamp: z.string().optional().describe('ISO timestamp of the move. Defaults to now.'),
-  notes: z.string().optional().describe('Additional notes about the relocation'),
+    .describe(
+      'Comma-separated list of hive identifiers being relocated (e.g. "1,2,5")',
+    ),
+  location: z
+    .string()
+    .describe('Name or description of the destination location'),
+  timestamp: z
+    .string()
+    .optional()
+    .describe('ISO timestamp of the move. Defaults to now.'),
+  notes: z
+    .string()
+    .optional()
+    .describe('Additional notes about the relocation'),
 });
 
 const GetRelocationsSchema = z.object({
   hive: z
     .string()
     .optional()
-    .describe('Filter entries to a specific hive identifier. Returns all entries when omitted.'),
+    .describe(
+      'Filter entries to a specific hive identifier. Returns all entries when omitted.',
+    ),
   limit: z
     .number()
     .int()
     .positive()
     .max(500)
     .optional()
-    .describe('Maximum number of most-recent entries to return. Defaults to 50.'),
+    .describe(
+      'Maximum number of most-recent entries to return. Defaults to 50.',
+    ),
 });
 
 const GetCurrentLocationSchema = z.object({
-  hive: z.string().describe('The hive identifier to look up the current location for'),
+  hive: z
+    .string()
+    .describe('The hive identifier to look up the current location for'),
 });
 
 type LogRelocationInput = z.infer<typeof LogRelocationSchema>;
@@ -55,25 +71,17 @@ export function registerRelocationTools(server: McpServer, env: Env) {
       inputSchema: LogRelocationSchema.shape,
     },
     async (input: LogRelocationInput) => {
-      const spreadsheetId = await requirePreparedSpreadsheetId(env);
-      const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
 
       const timestamp = input.timestamp ?? new Date().toISOString();
       const row = [timestamp, input.hives, input.location, input.notes ?? ''];
       await appendRow(sheets, spreadsheetId, RELOCATIONS_SHEET_NAME, row);
 
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({
-              success: true,
-              message: `Relocation of hive(s) ${input.hives} to "${input.location}" recorded at ${timestamp}.`,
-            }),
-          },
-        ],
-      };
-    }
+      return toolResponse({
+        success: true,
+        message: `Relocation of hive(s) ${input.hives} to "${input.location}" recorded at ${timestamp}.`,
+      });
+    },
   );
 
   server.registerTool(
@@ -84,17 +92,20 @@ export function registerRelocationTools(server: McpServer, env: Env) {
       inputSchema: GetRelocationsSchema.shape,
     },
     async (input: GetRelocationsInput) => {
-      const spreadsheetId = await requirePreparedSpreadsheetId(env);
-      const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
 
-      const allRows = await getRows(sheets, spreadsheetId, RELOCATIONS_SHEET_NAME);
+      const allRows = await getRows(
+        sheets,
+        spreadsheetId,
+        RELOCATIONS_SHEET_NAME,
+      );
       const limit = input.limit ?? 50;
 
       let filtered = allRows;
       if (input.hive) {
         const hiveId = input.hive;
         filtered = allRows.filter((row) => {
-          const hivesCell = row[1] ?? '';
+          const hivesCell = row[RELOCATION_COL.hives] ?? '';
           return hivesCell
             .split(',')
             .map((h) => h.trim())
@@ -102,18 +113,13 @@ export function registerRelocationTools(server: McpServer, env: Env) {
         });
       }
 
-      const sorted = [...filtered].sort((a, b) => (a[0] ?? '').localeCompare(b[0] ?? ''));
+      const sorted = [...filtered].sort((a, b) =>
+        (a[RELOCATION_COL.timestamp] ?? '').localeCompare(b[RELOCATION_COL.timestamp] ?? ''),
+      );
       const entries = sorted.slice(-limit).map((row) => rowToRelocation(row));
 
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({ count: entries.length, entries }),
-          },
-        ],
-      };
-    }
+      return toolResponse({ count: entries.length, entries });
+    },
   );
 
   server.registerTool(
@@ -124,14 +130,17 @@ export function registerRelocationTools(server: McpServer, env: Env) {
       inputSchema: GetCurrentLocationSchema.shape,
     },
     async (input: GetCurrentLocationInput) => {
-      const spreadsheetId = await requirePreparedSpreadsheetId(env);
-      const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
 
-      const allRows = await getRows(sheets, spreadsheetId, RELOCATIONS_SHEET_NAME);
+      const allRows = await getRows(
+        sheets,
+        spreadsheetId,
+        RELOCATIONS_SHEET_NAME,
+      );
 
       const hiveId = input.hive;
       const matching = allRows.filter((row) => {
-        const hivesCell = row[1] ?? '';
+        const hivesCell = row[RELOCATION_COL.hives] ?? '';
         return hivesCell
           .split(',')
           .map((h) => h.trim())
@@ -139,36 +148,24 @@ export function registerRelocationTools(server: McpServer, env: Env) {
       });
 
       if (matching.length === 0) {
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: JSON.stringify({
-                hive: hiveId,
-                current_location: null,
-                message: `No relocation records found for hive ${hiveId}.`,
-              }),
-            },
-          ],
-        };
+        return toolResponse({
+          hive: hiveId,
+          current_location: null,
+          message: `No relocation records found for hive ${hiveId}.`,
+        });
       }
 
-      const sorted = [...matching].sort((a, b) => (a[0] ?? '').localeCompare(b[0] ?? ''));
+      const sorted = [...matching].sort((a, b) =>
+        (a[RELOCATION_COL.timestamp] ?? '').localeCompare(b[RELOCATION_COL.timestamp] ?? ''),
+      );
       const latest = rowToRelocation(sorted[sorted.length - 1]);
 
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({
-              hive: hiveId,
-              current_location: latest.location,
-              since: latest.timestamp,
-              notes: latest.notes,
-            }),
-          },
-        ],
-      };
-    }
+      return toolResponse({
+        hive: hiveId,
+        current_location: latest.location,
+        since: latest.timestamp,
+        notes: latest.notes,
+      });
+    },
   );
 }

@@ -1,18 +1,18 @@
-import "dotenv/config";
-import worker from "../../src/index.js";
+import 'dotenv/config';
+import worker from '../../src/index.js';
 import {
   APIARY_TODOS_SHEET_NAME,
   LOGS_SHEET_NAME,
   PROFILES_SHEET_NAME,
   RELOCATIONS_SHEET_NAME,
   SPREADSHEET_ID_HEADER,
-} from "../../src/constants.js";
+} from '../../src/constants.js';
 import {
   execWithBackoffRetry,
   isRetryableGoogleQuotaError,
-} from "../../src/shared/retry.js";
-import { createSheetsClient } from "../../src/services/google.js";
-import type { Env } from "../../src/types.js";
+} from '../../src/shared/retry.js';
+import { createSheetsClient } from '../../src/services/google.js';
+import type { Env } from '../../src/types.js';
 
 type E2EConfig = {
   serviceAccountJson?: string;
@@ -33,9 +33,9 @@ function getEnvValue(name: string): string | undefined {
 
 export function getE2EConfig(): E2EConfig {
   return {
-    serviceAccountJson: getEnvValue("GOOGLE_SERVICE_ACCOUNT_JSON"),
-    spreadsheetId: getEnvValue("E2E_SPREADSHEET_ID"),
-    authApiKey: getEnvValue("AUTH_API_KEY"),
+    serviceAccountJson: getEnvValue('GOOGLE_SERVICE_ACCOUNT_JSON'),
+    spreadsheetId: getEnvValue('E2E_SPREADSHEET_ID'),
+    authApiKey: getEnvValue('AUTH_API_KEY'),
   };
 }
 
@@ -44,18 +44,18 @@ export function requireE2EConfig(): RequiredE2EConfig {
   const missing: string[] = [];
 
   if (!config.serviceAccountJson) {
-    missing.push("GOOGLE_SERVICE_ACCOUNT_JSON");
+    missing.push('GOOGLE_SERVICE_ACCOUNT_JSON');
   }
   if (!config.spreadsheetId) {
-    missing.push("E2E_SPREADSHEET_ID");
+    missing.push('E2E_SPREADSHEET_ID');
   }
   if (!config.authApiKey) {
-    missing.push("AUTH_API_KEY");
+    missing.push('AUTH_API_KEY');
   }
 
   if (missing.length > 0) {
     throw new Error(
-      `Missing required e2e environment variables: ${missing.join(", ")}`,
+      `Missing required e2e environment variables: ${missing.join(', ')}`,
     );
   }
 
@@ -74,7 +74,7 @@ export async function resolveE2ESpreadsheetContext(
   config: E2EConfig,
 ): Promise<E2ESpreadsheetContext> {
   if (!config.spreadsheetId) {
-    throw new Error("E2E_SPREADSHEET_ID is required for e2e tests.");
+    throw new Error('E2E_SPREADSHEET_ID is required for e2e tests.');
   }
 
   return { spreadsheetId: config.spreadsheetId };
@@ -85,7 +85,7 @@ export async function prepareAndClearSpreadsheet(
   spreadsheetId: string,
 ): Promise<void> {
   if (!config.serviceAccountJson) {
-    throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is required for e2e tests.");
+    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is required for e2e tests.');
   }
 
   const sheets = createSheetsClient(config.serviceAccountJson);
@@ -106,10 +106,10 @@ export async function prepareAndClearSpreadsheet(
 
 export function buildE2EEnv(config: E2EConfig): Env {
   if (!config.serviceAccountJson) {
-    throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is required for e2e tests.");
+    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is required for e2e tests.');
   }
   if (!config.authApiKey) {
-    throw new Error("AUTH_API_KEY is required for e2e tests.");
+    throw new Error('AUTH_API_KEY is required for e2e tests.');
   }
 
   return {
@@ -126,16 +126,16 @@ export async function callMcpMethod(
   id = 1,
 ): Promise<Record<string, unknown>> {
   return execWithBackoffRetry(async () => {
-    const request = new Request("https://example.com/mcp", {
-      method: "POST",
+    const request = new Request('https://example.com/mcp', {
+      method: 'POST',
       headers: {
-        "content-type": "application/json",
-        accept: "application/json, text/event-stream",
-        authorization: `Bearer ${env.AUTH_API_KEY ?? ""}`,
+        'content-type': 'application/json',
+        accept: 'application/json, text/event-stream',
+        authorization: `Bearer ${env.AUTH_API_KEY ?? ''}`,
         [SPREADSHEET_ID_HEADER]: spreadsheetId,
       },
       body: JSON.stringify({
-        jsonrpc: "2.0",
+        jsonrpc: '2.0',
         id,
         method,
         params,
@@ -163,7 +163,7 @@ export async function callMcpMethod(
     const firstText = result?.content?.[0]?.text;
     if (
       result?.isError &&
-      typeof firstText === "string" &&
+      typeof firstText === 'string' &&
       isRetryableGoogleQuotaError(firstText)
     ) {
       throw new Error(firstText);
@@ -183,7 +183,7 @@ export async function callTool(
   return callMcpMethod(
     env,
     spreadsheetId,
-    "tools/call",
+    'tools/call',
     {
       name: toolName,
       arguments: args,
@@ -199,7 +199,7 @@ export function extractToolJson(
   const content = result?.content as Array<Record<string, unknown>> | undefined;
   const text = content?.[0]?.text;
 
-  if (typeof text !== "string") {
+  if (typeof text !== 'string') {
     throw new Error(
       `Unexpected tool response payload: ${JSON.stringify(rpcResponse)}`,
     );

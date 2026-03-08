@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
 import {
   LOGS_SHEET_NAME,
   PROFILES_SHEET_NAME,
   APIARY_TODOS_SHEET_NAME,
   RELOCATIONS_SHEET_NAME,
-} from "../../src/constants.js";
-import { createSheetsClient } from "../../src/services/google.js";
+} from '../../src/constants.js';
+import { createSheetsClient } from '../../src/services/google.js';
 import {
   buildE2EEnv,
   callTool,
@@ -13,12 +13,12 @@ import {
   prepareAndClearSpreadsheet,
   requireE2EConfig,
   resolveE2ESpreadsheetContext,
-} from "./e2eUtils.js";
+} from './e2eUtils.js';
 
 const config = requireE2EConfig();
 
-describe("E2E tool: hive_setup", () => {
-  it("returns spreadsheet url and ensures required sheets exist", async () => {
+describe('E2E tool: hive_setup', () => {
+  it('returns spreadsheet url and ensures required sheets exist', async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
     await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
     const env = buildE2EEnv(config);
@@ -26,7 +26,7 @@ describe("E2E tool: hive_setup", () => {
     const rpcResponse = await callTool(
       env,
       ctx.spreadsheetId,
-      "hive_setup",
+      'hive_setup',
       {},
       101,
     );
@@ -40,7 +40,7 @@ describe("E2E tool: hive_setup", () => {
       spreadsheetId: ctx.spreadsheetId,
     });
     const titles = (spreadsheet.data.sheets ?? [])
-      .map((sheet) => sheet.properties?.title ?? "")
+      .map((sheet) => sheet.properties?.title ?? '')
       .filter(Boolean);
 
     expect(titles).toContain(LOGS_SHEET_NAME);
