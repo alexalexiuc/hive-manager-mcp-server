@@ -1,4 +1,5 @@
 import { sheets_v4, drive_v3 } from 'googleapis';
+import { PromiseCacheX } from 'promise-cachex';
 import {
   LOGS_SHEET_NAME,
   PROFILES_SHEET_NAME,
@@ -21,50 +22,11 @@ const REQUIRED_SHEETS = [
 const STRUCTURE_CACHE_TTL_MS = 5 * 60 * 1000;
 const MAX_STRUCTURE_CACHE_ENTRIES = 200;
 
-type StructureCacheEntry = {
-  ensuredAt: number;
-  inFlight?: Promise<void>;
-};
-
-const structureCache = new Map<string, StructureCacheEntry>();
-
-function getFreshStructureCacheEntry(
-  spreadsheetId: string,
-  now: number
-): StructureCacheEntry | undefined {
-  const existing = structureCache.get(spreadsheetId);
-  if (!existing) {
-    return undefined;
-  }
-
-  if (existing.inFlight) {
-    return existing;
-  }
-
-  if (now - existing.ensuredAt <= STRUCTURE_CACHE_TTL_MS) {
-    return existing;
-  }
-
-  structureCache.delete(spreadsheetId);
-  return undefined;
-}
-
-function setStructureCacheEntry(
-  spreadsheetId: string,
-  entry: StructureCacheEntry
-): void {
-  if (
-    !structureCache.has(spreadsheetId) &&
-    structureCache.size >= MAX_STRUCTURE_CACHE_ENTRIES
-  ) {
-    const oldestKey = structureCache.keys().next().value;
-    if (oldestKey) {
-      structureCache.delete(oldestKey);
-    }
-  }
-
-  structureCache.set(spreadsheetId, entry);
-}
+const structureCache = new PromiseCacheX<void>({
+  ttl: STRUCTURE_CACHE_TTL_MS,
+  maxEntries: MAX_STRUCTURE_CACHE_ENTRIES,
+  cleanupInterval: 0,
+});
 
 function getSheetIdByTitle(
   spreadsheet: sheets_v4.Schema$Spreadsheet,
@@ -305,30 +267,9 @@ export async function ensureSpreadsheetStructureCached(
   sheets: sheets_v4.Sheets,
   spreadsheetId: string
 ): Promise<void> {
-  const now = Date.now();
-  const cached = getFreshStructureCacheEntry(spreadsheetId, now);
-
-  if (cached?.inFlight) {
-    await cached.inFlight;
-    return;
-  }
-
-  if (cached) {
-    return;
-  }
-
-  let inFlight: Promise<void>;
-  inFlight = (async () => {
+  await structureCache.get(spreadsheetId, async () => {
     await ensureSpreadsheetStructure(sheets, spreadsheetId);
-    setStructureCacheEntry(spreadsheetId, { ensuredAt: Date.now() });
-  })().catch((error: unknown) => {
-    const current = structureCache.get(spreadsheetId);
-    if (current?.inFlight === inFlight) {
-      structureCache.delete(spreadsheetId);
-    }
-    throw error;
+  }, {
+    ttl: STRUCTURE_CACHE_TTL_MS,
   });
-
-  setStructureCacheEntry(spreadsheetId, { ensuredAt: 0, inFlight });
-  await inFlight;
 }
