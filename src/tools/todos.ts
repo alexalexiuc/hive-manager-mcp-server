@@ -83,9 +83,9 @@ function findTodoRowIndexByCreatedAt(
 
 export function registerTodoTools(server: McpServer, env: Env) {
   server.registerTool(
-    'hive_get_todos',
+    'hive_list_todos',
     {
-      description: 'Read all general apiary todos from the apiary_todos sheet.',
+      description: 'List all general apiary todos from the apiary_todos sheet.',
     },
     async () => {
       const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
@@ -175,7 +175,7 @@ export function registerTodoTools(server: McpServer, env: Env) {
   );
 
   server.registerTool(
-    'hive_mark_todo_done',
+    'hive_complete_todo',
     {
       description:
         'Mark an existing apiary todo as done, identified by created_at.',
