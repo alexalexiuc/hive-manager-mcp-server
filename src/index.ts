@@ -63,6 +63,34 @@ function toErrorPayload(error: unknown): {
   };
 }
 
+function isAuthorized(request: Request, env: Env): boolean {
+  const apiKey = env.AUTH_API_KEY;
+  if (!apiKey) {
+    return false;
+  }
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader) {
+    return false;
+  }
+  const [scheme, provided] = authHeader.split(" ");
+  if (scheme.toLowerCase() !== "bearer" || !provided) {
+    return false;
+  }
+
+  // Use constant-time comparison to prevent timing attacks
+  const encoder = new TextEncoder();
+  const a = encoder.encode(provided);
+  const b = encoder.encode(apiKey);
+  if (a.byteLength !== b.byteLength) {
+    return false;
+  }
+  let diff = 0;
+  for (let i = 0; i < a.byteLength; i++) {
+    diff |= a[i]! ^ b[i]!;
+  }
+  return diff === 0;
+}
+
 function withRequestSpreadsheetId(env: Env, request: Request): Env {
   const spreadsheetId = request.headers.get(SPREADSHEET_ID_HEADER) ?? undefined;
   return {
@@ -71,10 +99,15 @@ function withRequestSpreadsheetId(env: Env, request: Request): Env {
   };
 }
 
+function isHealthCheckRequest(request: Request): boolean {
+  const url = new URL(request.url);
+  return request.method === "GET" && url.pathname === "/health";
+}
+
 async function handleRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
 
-  if (url.pathname === "/health" && request.method === "GET") {
+  if (isHealthCheckRequest(request)) {
     return new Response(
       JSON.stringify({
         status: "ok",
@@ -113,6 +146,27 @@ export default {
     logRequest(requestId, request);
 
     try {
+      if (!isHealthCheckRequest(request)) {
+        if (!isAuthorized(request, env)) {
+          console.warn(
+            `[${requestId}] AUTH ${request.method} ${new URL(request.url).pathname} - unauthorized`,
+          );
+          const response = new Response(
+            JSON.stringify({ error: "Unauthorized" }),
+            {
+              status: 401,
+              headers: {
+                "Content-Type": "application/json",
+                "WWW-Authenticate":
+                  'Bearer error="invalid_token", error_description="Unauthorized"',
+              },
+            },
+          );
+          logResponse(requestId, request, response, Date.now() - startedAt);
+          return response;
+        }
+      }
+
       const response = await handleRequest(request, env);
       logResponse(requestId, request, response, Date.now() - startedAt);
       return response;

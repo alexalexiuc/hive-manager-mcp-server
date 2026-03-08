@@ -17,6 +17,13 @@ import type { Env } from "../../src/types.js";
 type E2EConfig = {
   serviceAccountJson?: string;
   spreadsheetId?: string;
+  authApiKey?: string;
+};
+
+export type RequiredE2EConfig = {
+  serviceAccountJson: string;
+  spreadsheetId: string;
+  authApiKey: string;
 };
 
 function getEnvValue(name: string): string | undefined {
@@ -28,6 +35,34 @@ export function getE2EConfig(): E2EConfig {
   return {
     serviceAccountJson: getEnvValue("GOOGLE_SERVICE_ACCOUNT_JSON"),
     spreadsheetId: getEnvValue("E2E_SPREADSHEET_ID"),
+    authApiKey: getEnvValue("AUTH_API_KEY"),
+  };
+}
+
+export function requireE2EConfig(): RequiredE2EConfig {
+  const config = getE2EConfig();
+  const missing: string[] = [];
+
+  if (!config.serviceAccountJson) {
+    missing.push("GOOGLE_SERVICE_ACCOUNT_JSON");
+  }
+  if (!config.spreadsheetId) {
+    missing.push("E2E_SPREADSHEET_ID");
+  }
+  if (!config.authApiKey) {
+    missing.push("AUTH_API_KEY");
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required e2e environment variables: ${missing.join(", ")}`,
+    );
+  }
+
+  return {
+    serviceAccountJson: config.serviceAccountJson!,
+    spreadsheetId: config.spreadsheetId!,
+    authApiKey: config.authApiKey!,
   };
 }
 
@@ -39,9 +74,7 @@ export async function resolveE2ESpreadsheetContext(
   config: E2EConfig,
 ): Promise<E2ESpreadsheetContext> {
   if (!config.spreadsheetId) {
-    throw new Error(
-      "E2E_SPREADSHEET_ID is required for e2e tests.",
-    );
+    throw new Error("E2E_SPREADSHEET_ID is required for e2e tests.");
   }
 
   return { spreadsheetId: config.spreadsheetId };
@@ -75,9 +108,13 @@ export function buildE2EEnv(config: E2EConfig): Env {
   if (!config.serviceAccountJson) {
     throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is required for e2e tests.");
   }
+  if (!config.authApiKey) {
+    throw new Error("AUTH_API_KEY is required for e2e tests.");
+  }
 
   return {
     GOOGLE_SERVICE_ACCOUNT_JSON: config.serviceAccountJson,
+    AUTH_API_KEY: config.authApiKey,
   };
 }
 
@@ -94,6 +131,7 @@ export async function callMcpMethod(
       headers: {
         "content-type": "application/json",
         accept: "application/json, text/event-stream",
+        authorization: `Bearer ${env.AUTH_API_KEY ?? ""}`,
         [SPREADSHEET_ID_HEADER]: spreadsheetId,
       },
       body: JSON.stringify({

@@ -6,15 +6,14 @@ import {
   buildE2EEnv,
   callTool,
   extractToolJson,
-  getE2EConfig,
   prepareAndClearSpreadsheet,
+  requireE2EConfig,
   resolveE2ESpreadsheetContext,
 } from "./e2eUtils.js";
 
-const config = getE2EConfig();
-const describeIfConfigured = config.serviceAccountJson && config.spreadsheetId ? describe : describe.skip;
+const config = requireE2EConfig();
 
-describeIfConfigured("E2E tools: relocations", () => {
+describe("E2E tools: relocations", () => {
   it("logs relocation and resolves current location", async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
     await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
@@ -57,7 +56,11 @@ describeIfConfigured("E2E tools: relocations", () => {
     expect(currentPayload.current_location).toBe("North Apiary");
 
     const sheets = createSheetsClient(config.serviceAccountJson!);
-    const rows = await getRows(sheets, ctx.spreadsheetId, RELOCATIONS_SHEET_NAME);
+    const rows = await getRows(
+      sheets,
+      ctx.spreadsheetId,
+      RELOCATIONS_SHEET_NAME,
+    );
     expect(rows).toHaveLength(1);
     expect(rows[0][1]).toBe("1,2");
     expect(rows[0][2]).toBe("North Apiary");

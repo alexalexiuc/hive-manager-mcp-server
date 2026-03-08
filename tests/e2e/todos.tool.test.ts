@@ -6,15 +6,14 @@ import {
   buildE2EEnv,
   callTool,
   extractToolJson,
-  getE2EConfig,
   prepareAndClearSpreadsheet,
+  requireE2EConfig,
   resolveE2ESpreadsheetContext,
 } from "./e2eUtils.js";
 
-const config = getE2EConfig();
-const describeIfConfigured = config.serviceAccountJson && config.spreadsheetId ? describe : describe.skip;
+const config = requireE2EConfig();
 
-describeIfConfigured("E2E tools: todos", () => {
+describe("E2E tools: todos", () => {
   it("adds and reads todos via MCP tools", async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
     await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
@@ -37,7 +36,13 @@ describeIfConfigured("E2E tools: todos", () => {
     const addPayload = extractToolJson(addResponse);
     expect(addPayload.success).toBe(true);
 
-    const listResponse = await callTool(env, ctx.spreadsheetId, "hive_get_todos", {}, 503);
+    const listResponse = await callTool(
+      env,
+      ctx.spreadsheetId,
+      "hive_get_todos",
+      {},
+      503,
+    );
     const listPayload = extractToolJson(listResponse);
     expect(listPayload.count).toBe(1);
 
@@ -45,7 +50,11 @@ describeIfConfigured("E2E tools: todos", () => {
     expect(todos[0]?.todo).toBe("Check brood pattern");
 
     const sheets = createSheetsClient(config.serviceAccountJson!);
-    const rows = await getRows(sheets, ctx.spreadsheetId, APIARY_TODOS_SHEET_NAME);
+    const rows = await getRows(
+      sheets,
+      ctx.spreadsheetId,
+      APIARY_TODOS_SHEET_NAME,
+    );
     expect(rows).toHaveLength(1);
     expect(rows[0][0]).toBe("Check brood pattern");
   }, 60_000);

@@ -6,15 +6,14 @@ import {
   buildE2EEnv,
   callTool,
   extractToolJson,
-  getE2EConfig,
   prepareAndClearSpreadsheet,
+  requireE2EConfig,
   resolveE2ESpreadsheetContext,
 } from "./e2eUtils.js";
 
-const config = getE2EConfig();
-const describeIfConfigured = config.serviceAccountJson && config.spreadsheetId ? describe : describe.skip;
+const config = requireE2EConfig();
 
-describeIfConfigured("E2E tools: profile", () => {
+describe("E2E tools: profile", () => {
   it("updates and reads profile data via MCP tools", async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
     await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
@@ -39,17 +38,33 @@ describeIfConfigured("E2E tools: profile", () => {
     const updatePayload = extractToolJson(updateResponse);
     expect(updatePayload.success).toBe(true);
 
-    const getResponse = await callTool(env, ctx.spreadsheetId, "hive_get_profile", { hive: "1" }, 303);
+    const getResponse = await callTool(
+      env,
+      ctx.spreadsheetId,
+      "hive_get_profile",
+      { hive: "1" },
+      303,
+    );
     const profilePayload = extractToolJson(getResponse);
     expect(profilePayload.hive).toBe("1");
     expect(profilePayload.strength).toBe("strong");
 
-    const allResponse = await callTool(env, ctx.spreadsheetId, "hive_get_all_profiles", {}, 304);
+    const allResponse = await callTool(
+      env,
+      ctx.spreadsheetId,
+      "hive_get_all_profiles",
+      {},
+      304,
+    );
     const allPayload = extractToolJson(allResponse);
     expect(allPayload.count).toBe(1);
 
     const sheets = createSheetsClient(config.serviceAccountJson!);
-    const profileRows = await getRows(sheets, ctx.spreadsheetId, PROFILES_SHEET_NAME);
+    const profileRows = await getRows(
+      sheets,
+      ctx.spreadsheetId,
+      PROFILES_SHEET_NAME,
+    );
     expect(profileRows).toHaveLength(1);
     expect(profileRows[0][0]).toBe("1");
     expect(profileRows[0][2]).toBe("strong");
