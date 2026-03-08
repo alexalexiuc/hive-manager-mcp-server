@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { RELOCATIONS_SHEET_NAME } from "../../src/constants.js";
-import { createSheetsClient } from "../../src/services/google.js";
-import { getRows } from "../../src/services/sheets.js";
+import { describe, expect, it } from 'vitest';
+import { RELOCATIONS_SHEET_NAME } from '../../src/constants.js';
+import { createSheetsClient } from '../../src/services/google.js';
+import { getRows } from '../../src/services/sheets.js';
 import {
   buildE2EEnv,
   callTool,
@@ -9,26 +9,26 @@ import {
   prepareAndClearSpreadsheet,
   requireE2EConfig,
   resolveE2ESpreadsheetContext,
-} from "./e2eUtils.js";
+} from './e2eUtils.js';
 
 const config = requireE2EConfig();
 
-describe("E2E tools: relocations", () => {
-  it("logs relocation and resolves current location", async () => {
+describe('E2E tools: relocations', () => {
+  it('logs relocation and resolves current location', async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
     await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
     const env = buildE2EEnv(config);
 
-    await callTool(env, ctx.spreadsheetId, "hive_setup", {}, 601);
+    await callTool(env, ctx.spreadsheetId, 'hive_setup', {}, 601);
 
     const logResponse = await callTool(
       env,
       ctx.spreadsheetId,
-      "hive_log_relocation",
+      'hive_log_relocation',
       {
-        hives: "1,2",
-        location: "North Apiary",
-        notes: "Season move",
+        hives: '1,2',
+        location: 'North Apiary',
+        notes: 'Season move',
       },
       602,
     );
@@ -38,8 +38,8 @@ describe("E2E tools: relocations", () => {
     const listResponse = await callTool(
       env,
       ctx.spreadsheetId,
-      "hive_get_relocations",
-      { hive: "1", limit: 10 },
+      'hive_get_relocations',
+      { hive: '1', limit: 10 },
       603,
     );
     const listPayload = extractToolJson(listResponse);
@@ -48,12 +48,12 @@ describe("E2E tools: relocations", () => {
     const currentResponse = await callTool(
       env,
       ctx.spreadsheetId,
-      "hive_get_current_location",
-      { hive: "1" },
+      'hive_get_current_location',
+      { hive: '1' },
       604,
     );
     const currentPayload = extractToolJson(currentResponse);
-    expect(currentPayload.current_location).toBe("North Apiary");
+    expect(currentPayload.current_location).toBe('North Apiary');
 
     const sheets = createSheetsClient(config.serviceAccountJson!);
     const rows = await getRows(
@@ -62,7 +62,7 @@ describe("E2E tools: relocations", () => {
       RELOCATIONS_SHEET_NAME,
     );
     expect(rows).toHaveLength(1);
-    expect(rows[0][1]).toBe("1,2");
-    expect(rows[0][2]).toBe("North Apiary");
+    expect(rows[0][1]).toBe('1,2');
+    expect(rows[0][2]).toBe('North Apiary');
   }, 60_000);
 });
