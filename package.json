@@ -9,9 +9,9 @@
     "type-check": "tsc --noEmit",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
-    "test": "vitest run",
-    "test:e2e": "vitest run tests/e2e",
-    "test:watch": "vitest",
+    "test": "vitest run --config vitest.config.ts",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "test:watch": "vitest --config vitest.config.ts",
     "lint": "eslint src tests --ext .ts",
     "lint:fix": "eslint src tests --ext .ts --fix",
     "deploy": "npm run build && wrangler deploy"

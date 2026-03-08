@@ -5,8 +5,8 @@ export default mergeConfig(
   sharedVitestConfig,
   defineConfig({
     test: {
-      include: ["tests/**/*.test.ts"],
-      exclude: ["tests/e2e/**/*.test.ts"],
+      include: ["tests/e2e/**/*.test.ts"],
+      fileParallelism: false,
     },
   }),
 );
