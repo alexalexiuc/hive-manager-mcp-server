@@ -27,7 +27,7 @@ function getEnvValue(name: string): string | undefined {
 export function getE2EConfig(): E2EConfig {
   return {
     serviceAccountJson: getEnvValue("GOOGLE_SERVICE_ACCOUNT_JSON"),
-    spreadsheetId: getEnvValue("E2E_SPREADSHEET_ID") ?? getEnvValue("SPREADSHEET_ID"),
+    spreadsheetId: getEnvValue("E2E_SPREADSHEET_ID"),
   };
 }
 
@@ -40,7 +40,7 @@ export async function resolveE2ESpreadsheetContext(
 ): Promise<E2ESpreadsheetContext> {
   if (!config.spreadsheetId) {
     throw new Error(
-      "E2E_SPREADSHEET_ID (or SPREADSHEET_ID) is required for e2e tests.",
+      "E2E_SPREADSHEET_ID is required for e2e tests.",
     );
   }
 

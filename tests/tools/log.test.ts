@@ -7,5 +7,5 @@ describe('hive_log_entry', () => {
   it.todo('validates required fields (hive, event_type)');
   it.todo('handles sheet API error gracefully');
   it.todo('uses current ISO timestamp as default when timestamp not provided');
-  it.todo('throws error when SPREADSHEET_ID not set');
+  it.todo('throws error when x-spreadsheet-id header missing');
 });

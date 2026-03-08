@@ -50,7 +50,7 @@ npm run deploy
 
 Notes:
 - `npm run deploy` runs `npm run build && wrangler deploy`.
-- `SPREADSHEET_ID` is optional fallback. Preferred per-request targeting uses `x-spreadsheet-id` header.
+- Spreadsheet selection is request-scoped via `x-spreadsheet-id` header only.
 
 ## Request Spreadsheet Header (Important)
 
@@ -123,5 +123,4 @@ For CI e2e:
 | --- | --- | --- |
 | `E2E_SPREADSHEET_ID`          | Yes (e2e) | Spreadsheet id used by e2e tests and request header |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | Yes | Full service-account JSON string |
-| `SPREADSHEET_ID`              | No | Optional fallback spreadsheet ID when request header is not provided |
 | `PORT`                        | No | Local/server port (default: `3000`) |
