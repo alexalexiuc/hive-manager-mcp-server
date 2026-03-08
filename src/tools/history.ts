@@ -1,13 +1,38 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { createSheetsClient } from '../services/google.js';
 import { getRows } from '../services/sheets.js';
 import { requirePreparedSpreadsheetId } from '../services/spreadsheet.js';
-import { LOGS_SHEET_NAME, DEFAULT_LOG_LIMIT, MAX_LOG_LIMIT } from '../constants.js';
-import type { Env } from '../types.js';
+import {
+  LOG_COL,
+  LOGS_SHEET_NAME,
+  DEFAULT_LOG_LIMIT,
+  MAX_LOG_LIMIT,
+} from '../constants.js';
+import { toolResponse } from './toolResponse.js';
+import type { Env, HiveLogEntry } from '../types.js';
+
+function rowToLogEntry(row: string[]): HiveLogEntry {
+  return {
+    timestamp: row[LOG_COL.timestamp] ?? '',
+    hive: row[LOG_COL.hive] ?? '',
+    event_type: row[LOG_COL.event_type] ?? '',
+    queen_seen: row[LOG_COL.queen_seen] ?? '',
+    brood_status: row[LOG_COL.brood_status] ?? '',
+    food_status: row[LOG_COL.food_status] ?? '',
+    action_taken: row[LOG_COL.action_taken] ?? '',
+    notes: row[LOG_COL.notes] ?? '',
+    next_check: row[LOG_COL.next_check] ?? '',
+    tags: row[LOG_COL.tags] ?? '',
+  };
+}
 
 const HistorySchema = z.object({
-  hive: z.string().optional().describe('Filter by hive number or identifier. If omitted, returns entries for all hives.'),
+  hive: z
+    .string()
+    .optional()
+    .describe(
+      'Filter by hive number or identifier. If omitted, returns entries for all hives.',
+    ),
   limit: z
     .number()
     .int()
@@ -15,7 +40,9 @@ const HistorySchema = z.object({
     .max(MAX_LOG_LIMIT)
     .default(DEFAULT_LOG_LIMIT)
     .optional()
-    .describe(`Number of most recent entries to return (default: ${DEFAULT_LOG_LIMIT}, max: ${MAX_LOG_LIMIT})`),
+    .describe(
+      `Number of most recent entries to return (default: ${DEFAULT_LOG_LIMIT}, max: ${MAX_LOG_LIMIT})`,
+    ),
 });
 
 type HistoryInput = z.infer<typeof HistorySchema>;
@@ -29,43 +56,19 @@ export function registerHistoryTool(server: McpServer, env: Env) {
       inputSchema: HistorySchema.shape,
     },
     async (input: HistoryInput) => {
-      const spreadsheetId = await requirePreparedSpreadsheetId(env);
-      const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
 
       const rows = await getRows(sheets, spreadsheetId, LOGS_SHEET_NAME);
 
       let filtered = rows;
       if (input.hive) {
-        filtered = rows.filter((row) => row[1] === input.hive);
+        filtered = rows.filter((row) => row[LOG_COL.hive] === input.hive);
       }
 
       const limit = input.limit ?? DEFAULT_LOG_LIMIT;
-      const limited = filtered.slice(-limit);
+      const entries = filtered.slice(-limit).map(rowToLogEntry);
 
-      const entries = limited.map((row) => ({
-        timestamp: row[0] ?? '',
-        hive: row[1] ?? '',
-        event_type: row[2] ?? '',
-        queen_seen: row[3] ?? '',
-        brood_status: row[4] ?? '',
-        food_status: row[5] ?? '',
-        action_taken: row[6] ?? '',
-        notes: row[7] ?? '',
-        next_check: row[8] ?? '',
-        tags: row[9] ?? '',
-      }));
-
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({
-              count: entries.length,
-              entries,
-            }),
-          },
-        ],
-      };
-    }
+      return toolResponse({ count: entries.length, entries });
+    },
   );
 }

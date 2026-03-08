@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createMcpServer } from './src/server.js';
 
 vi.mock('@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js', () => ({
   WebStandardStreamableHTTPServerTransport: vi.fn().mockImplementation(() => ({
@@ -22,6 +23,7 @@ async function loadWorker(): Promise<WorkerModule['default']> {
 function makeEnv(overrides: Record<string, string> = {}) {
   return {
     GOOGLE_SERVICE_ACCOUNT_JSON: '{"type":"service_account"}',
+    AUTH_API_KEY: 'test-api-key',
     ...overrides,
   };
 }
@@ -35,6 +37,7 @@ describe('HTTP routes', () => {
 
   beforeEach(async () => {
     vi.resetModules();
+    vi.clearAllMocks();
     worker = await loadWorker();
   });
 
@@ -48,17 +51,35 @@ describe('HTTP routes', () => {
     expect(body.status).toBe('ok');
   });
 
-  it('accepts /mcp request without auth header', async () => {
+  it('rejects /mcp request without auth header', async () => {
     const env = makeEnv();
     const req = makeRequest('/mcp', 'POST');
     const res = await worker.fetch(req, env);
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(401);
   });
 
-  it('returns 404 for unknown routes', async () => {
+  it('accepts /mcp request with auth header', async () => {
     const env = makeEnv();
-    const req = makeRequest('/some-other-path');
+    const req = makeRequest('/mcp', 'POST', {
+      Authorization: `Bearer ${env.AUTH_API_KEY}`,
+      'x-spreadsheet-id': 'sheet-123',
+    });
+    const res = await worker.fetch(req, env);
+
+    expect(res.status).toBe(200);
+    expect(createMcpServer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        REQUEST_SPREADSHEET_ID: 'sheet-123',
+      }),
+    );
+  });
+
+  it('returns 404 for authorized unknown routes', async () => {
+    const env = makeEnv();
+    const req = makeRequest('/some-other-path', 'GET', {
+      Authorization: `Bearer ${env.AUTH_API_KEY}`,
+    });
     const res = await worker.fetch(req, env);
 
     expect(res.status).toBe(404);

@@ -1,43 +1,65 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { createSheetsClient } from '../services/google.js';
-import { getRows, findRowIndex, updateRow, appendRow } from '../services/sheets.js';
+import {
+  getRows,
+  findRowIndex,
+  updateRow,
+  appendRow,
+} from '../services/sheets.js';
 import { requirePreparedSpreadsheetId } from '../services/spreadsheet.js';
-import { PROFILES_SHEET_NAME } from '../constants.js';
+import { PROFILE_COL, PROFILES_SHEET_NAME } from '../constants.js';
+import { toolResponse } from './toolResponse.js';
 import type { Env, HiveProfile } from '../types.js';
 
 function rowToProfile(row: string[]): HiveProfile {
   return {
-    hive: row[0] ?? '',
-    last_check: row[1] ?? '',
-    strength: row[2] ?? '',
-    queen_status: row[3] ?? '',
-    brood_status: row[4] ?? '',
-    food_status: row[5] ?? '',
-    notes: row[6] ?? '',
-    todos: row[7] ?? '',
-    updated_at: row[8] ?? '',
-    origin_hive: row[9] ?? '',
-    queen_race: row[10] ?? '',
-    queen_birth_year: row[11] ?? '',
+    hive: row[PROFILE_COL.hive] ?? '',
+    last_check: row[PROFILE_COL.last_check] ?? '',
+    strength: row[PROFILE_COL.strength] ?? '',
+    queen_status: row[PROFILE_COL.queen_status] ?? '',
+    brood_status: row[PROFILE_COL.brood_status] ?? '',
+    food_status: row[PROFILE_COL.food_status] ?? '',
+    notes: row[PROFILE_COL.notes] ?? '',
+    todos: row[PROFILE_COL.todos] ?? '',
+    updated_at: row[PROFILE_COL.updated_at] ?? '',
+    origin_hive: row[PROFILE_COL.origin_hive] ?? '',
+    queen_race: row[PROFILE_COL.queen_race] ?? '',
+    queen_birth_year: row[PROFILE_COL.queen_birth_year] ?? '',
   };
 }
 
 const GetProfileSchema = z.object({
-  hive: z.string().describe('The hive number or identifier to retrieve the profile for'),
+  hive: z
+    .string()
+    .describe('The hive number or identifier to retrieve the profile for'),
 });
 
 const UpdateProfileSchema = z.object({
   hive: z.string().describe('The hive number or identifier to update'),
-  strength: z.string().optional().describe('Colony strength (e.g. "strong", "medium", "weak")'),
-  queen_status: z.string().optional().describe('Queen status (e.g. "queen_seen", "missing", "unknown")'),
+  strength: z
+    .string()
+    .optional()
+    .describe('Colony strength (e.g. "strong", "medium", "weak")'),
+  queen_status: z
+    .string()
+    .optional()
+    .describe('Queen status (e.g. "queen_seen", "missing", "unknown")'),
   brood_status: z.string().optional().describe('Brood condition'),
   food_status: z.string().optional().describe('Food/honey level'),
   notes: z.string().optional().describe('General notes'),
   todos: z.string().optional().describe('Upcoming actions or todos'),
-  origin_hive: z.string().optional().describe('The hive this hive was created from (e.g. via split or merge)'),
-  queen_race: z.string().optional().describe('Race or breed of the queen (e.g. "Carniolan", "Italian")'),
-  queen_birth_year: z.string().optional().describe('Year the queen was born or introduced (e.g. "2024")'),
+  origin_hive: z
+    .string()
+    .optional()
+    .describe('The hive this hive was created from (e.g. via split or merge)'),
+  queen_race: z
+    .string()
+    .optional()
+    .describe('Race or breed of the queen (e.g. "Carniolan", "Italian")'),
+  queen_birth_year: z
+    .string()
+    .optional()
+    .describe('Year the queen was born or introduced (e.g. "2024")'),
 });
 
 type GetProfileInput = z.infer<typeof GetProfileSchema>;
@@ -47,14 +69,20 @@ export function registerProfileTools(server: McpServer, env: Env) {
   server.registerTool(
     'hive_get_profile',
     {
-      description: 'Read the current profile for a specific hive from the profiles sheet.',
+      description:
+        'Read the current profile for a specific hive from the profiles sheet.',
       inputSchema: GetProfileSchema.shape,
     },
     async (input: GetProfileInput) => {
-      const spreadsheetId = await requirePreparedSpreadsheetId(env);
-      const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
 
-      const rowIndex = await findRowIndex(sheets, spreadsheetId, PROFILES_SHEET_NAME, 0, input.hive);
+      const rowIndex = await findRowIndex(
+        sheets,
+        spreadsheetId,
+        PROFILES_SHEET_NAME,
+        PROFILE_COL.hive,
+        input.hive,
+      );
       if (rowIndex === null) {
         throw new Error(`Profile for hive ${input.hive} not found.`);
       }
@@ -63,29 +91,28 @@ export function registerProfileTools(server: McpServer, env: Env) {
       const row = rows[rowIndex - 2] ?? [];
       const profile = rowToProfile(row);
 
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify(profile),
-          },
-        ],
-      };
-    }
+      return toolResponse(profile);
+    },
   );
 
   server.registerTool(
     'hive_update_profile',
     {
-      description: 'Update specific fields in a hive profile row in the profiles sheet.',
+      description:
+        'Update specific fields in a hive profile row in the profiles sheet.',
       inputSchema: UpdateProfileSchema.shape,
     },
     async (input: UpdateProfileInput) => {
-      const spreadsheetId = await requirePreparedSpreadsheetId(env);
-      const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
 
       const updatedAt = new Date().toISOString();
-      const rowIndex = await findRowIndex(sheets, spreadsheetId, PROFILES_SHEET_NAME, 0, input.hive);
+      const rowIndex = await findRowIndex(
+        sheets,
+        spreadsheetId,
+        PROFILES_SHEET_NAME,
+        PROFILE_COL.hive,
+        input.hive,
+      );
 
       if (rowIndex === null) {
         // Create a new profile row
@@ -110,33 +137,32 @@ export function registerProfileTools(server: McpServer, env: Env) {
 
         const mergedRow = [
           input.hive,
-          existing[1] ?? '',
-          input.strength ?? existing[2] ?? '',
-          input.queen_status ?? existing[3] ?? '',
-          input.brood_status ?? existing[4] ?? '',
-          input.food_status ?? existing[5] ?? '',
-          input.notes ?? existing[6] ?? '',
-          input.todos ?? existing[7] ?? '',
+          existing[PROFILE_COL.last_check] ?? '',
+          input.strength ?? existing[PROFILE_COL.strength] ?? '',
+          input.queen_status ?? existing[PROFILE_COL.queen_status] ?? '',
+          input.brood_status ?? existing[PROFILE_COL.brood_status] ?? '',
+          input.food_status ?? existing[PROFILE_COL.food_status] ?? '',
+          input.notes ?? existing[PROFILE_COL.notes] ?? '',
+          input.todos ?? existing[PROFILE_COL.todos] ?? '',
           updatedAt,
-          input.origin_hive ?? existing[9] ?? '',
-          input.queen_race ?? existing[10] ?? '',
-          input.queen_birth_year ?? existing[11] ?? '',
+          input.origin_hive ?? existing[PROFILE_COL.origin_hive] ?? '',
+          input.queen_race ?? existing[PROFILE_COL.queen_race] ?? '',
+          input.queen_birth_year ?? existing[PROFILE_COL.queen_birth_year] ?? '',
         ];
-        await updateRow(sheets, spreadsheetId, PROFILES_SHEET_NAME, rowIndex, mergedRow);
+        await updateRow(
+          sheets,
+          spreadsheetId,
+          PROFILES_SHEET_NAME,
+          rowIndex,
+          mergedRow,
+        );
       }
 
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({
-              success: true,
-              message: `Profile for hive ${input.hive} updated successfully.`,
-            }),
-          },
-        ],
-      };
-    }
+      return toolResponse({
+        success: true,
+        message: `Profile for hive ${input.hive} updated successfully.`,
+      });
+    },
   );
 
   server.registerTool(
@@ -145,23 +171,12 @@ export function registerProfileTools(server: McpServer, env: Env) {
       description: 'List all hive profiles from the profiles sheet.',
     },
     async () => {
-      const spreadsheetId = await requirePreparedSpreadsheetId(env);
-      const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
 
       const rows = await getRows(sheets, spreadsheetId, PROFILES_SHEET_NAME);
       const profiles = rows.map((row) => rowToProfile(row));
 
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({
-              count: profiles.length,
-              profiles,
-            }),
-          },
-        ],
-      };
-    }
+      return toolResponse({ count: profiles.length, profiles });
+    },
   );
 }
