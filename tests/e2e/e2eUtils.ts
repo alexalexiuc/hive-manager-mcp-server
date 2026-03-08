@@ -17,11 +17,13 @@ import type { Env } from "../../src/types.js";
 type E2EConfig = {
   serviceAccountJson?: string;
   spreadsheetId?: string;
+  authApiKey?: string;
 };
 
 export type RequiredE2EConfig = {
   serviceAccountJson: string;
   spreadsheetId: string;
+  authApiKey: string;
 };
 
 function getEnvValue(name: string): string | undefined {
@@ -33,6 +35,7 @@ export function getE2EConfig(): E2EConfig {
   return {
     serviceAccountJson: getEnvValue("GOOGLE_SERVICE_ACCOUNT_JSON"),
     spreadsheetId: getEnvValue("E2E_SPREADSHEET_ID"),
+    authApiKey: getEnvValue("AUTH_API_KEY"),
   };
 }
 
@@ -46,6 +49,9 @@ export function requireE2EConfig(): RequiredE2EConfig {
   if (!config.spreadsheetId) {
     missing.push("E2E_SPREADSHEET_ID");
   }
+  if (!config.authApiKey) {
+    missing.push("AUTH_API_KEY");
+  }
 
   if (missing.length > 0) {
     throw new Error(
@@ -56,6 +62,7 @@ export function requireE2EConfig(): RequiredE2EConfig {
   return {
     serviceAccountJson: config.serviceAccountJson!,
     spreadsheetId: config.spreadsheetId!,
+    authApiKey: config.authApiKey!,
   };
 }
 
@@ -101,10 +108,13 @@ export function buildE2EEnv(config: E2EConfig): Env {
   if (!config.serviceAccountJson) {
     throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is required for e2e tests.");
   }
+  if (!config.authApiKey) {
+    throw new Error("AUTH_API_KEY is required for e2e tests.");
+  }
 
   return {
     GOOGLE_SERVICE_ACCOUNT_JSON: config.serviceAccountJson,
-    AUTH_API_KEY: getEnvValue("AUTH_API_KEY"),
+    AUTH_API_KEY: config.authApiKey,
   };
 }
 

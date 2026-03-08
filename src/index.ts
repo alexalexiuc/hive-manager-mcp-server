@@ -99,10 +99,15 @@ function withRequestSpreadsheetId(env: Env, request: Request): Env {
   };
 }
 
+function isHealthCheckRequest(request: Request): boolean {
+  const url = new URL(request.url);
+  return request.method === "GET" && url.pathname === "/health";
+}
+
 async function handleRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
 
-  if (url.pathname === "/health" && request.method === "GET") {
+  if (isHealthCheckRequest(request)) {
     return new Response(
       JSON.stringify({
         status: "ok",
@@ -141,19 +146,21 @@ export default {
     logRequest(requestId, request);
 
     try {
-      if (!isAuthorized(request, env)) {
-        console.warn(
-          `[${requestId}] AUTH ${request.method} ${new URL(request.url).pathname} - unauthorized`,
-        );
-        const response = new Response(
-          JSON.stringify({ error: "Unauthorized" }),
-          {
-            status: 401,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
-        logResponse(requestId, request, response, Date.now() - startedAt);
-        return response;
+      if (!isHealthCheckRequest(request)) {
+        if (!isAuthorized(request, env)) {
+          console.warn(
+            `[${requestId}] AUTH ${request.method} ${new URL(request.url).pathname} - unauthorized`,
+          );
+          const response = new Response(
+            JSON.stringify({ error: "Unauthorized" }),
+            {
+              status: 401,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+          logResponse(requestId, request, response, Date.now() - startedAt);
+          return response;
+        }
       }
 
       const response = await handleRequest(request, env);
