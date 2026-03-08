@@ -12,18 +12,19 @@ import {
 } from "./e2eUtils.js";
 
 const config = getE2EConfig();
-const describeIfConfigured = config.serviceAccountJson ? describe : describe.skip;
+const describeIfConfigured = config.serviceAccountJson && config.spreadsheetId ? describe : describe.skip;
 
 describeIfConfigured("E2E tools: relocations", () => {
   it("logs relocation and resolves current location", async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
     await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
-    const env = buildE2EEnv(config, ctx.spreadsheetId);
+    const env = buildE2EEnv(config);
 
-    await callTool(env, "hive_setup", {}, 601);
+    await callTool(env, ctx.spreadsheetId, "hive_setup", {}, 601);
 
     const logResponse = await callTool(
       env,
+      ctx.spreadsheetId,
       "hive_log_relocation",
       {
         hives: "1,2",
@@ -37,6 +38,7 @@ describeIfConfigured("E2E tools: relocations", () => {
 
     const listResponse = await callTool(
       env,
+      ctx.spreadsheetId,
       "hive_get_relocations",
       { hive: "1", limit: 10 },
       603,
@@ -46,6 +48,7 @@ describeIfConfigured("E2E tools: relocations", () => {
 
     const currentResponse = await callTool(
       env,
+      ctx.spreadsheetId,
       "hive_get_current_location",
       { hive: "1" },
       604,

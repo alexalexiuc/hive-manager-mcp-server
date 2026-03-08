@@ -5,28 +5,18 @@ import {
   LOGS_SHEET_NAME,
   PROFILES_SHEET_NAME,
   RELOCATIONS_SHEET_NAME,
-  SPREADSHEET_NAME,
+  SPREADSHEET_ID_HEADER,
 } from "../../src/constants.js";
 import {
   execWithBackoffRetry,
   isRetryableGoogleQuotaError,
 } from "../../src/shared/retry.js";
-import {
-  findFolder,
-  findSpreadsheetInFolder,
-} from "../../src/services/drive.js";
-import {
-  createDriveClient,
-  createSheetsClient,
-} from "../../src/services/google.js";
+import { createSheetsClient } from "../../src/services/google.js";
 import type { Env } from "../../src/types.js";
 
 type E2EConfig = {
   serviceAccountJson?: string;
-  hivesFolderId?: string;
-  hivesFolderName: string;
-  hivesE2eFolderName: string;
-  spreadsheetName: string;
+  spreadsheetId?: string;
 };
 
 function getEnvValue(name: string): string | undefined {
@@ -37,58 +27,24 @@ function getEnvValue(name: string): string | undefined {
 export function getE2EConfig(): E2EConfig {
   return {
     serviceAccountJson: getEnvValue("GOOGLE_SERVICE_ACCOUNT_JSON"),
-    hivesFolderId: getEnvValue("HIVES_FOLDER_ID"),
-    hivesFolderName: getEnvValue("HIVES_FOLDER_NAME") ?? "Hives",
-    hivesE2eFolderName: getEnvValue("HIVES_E2E_FOLDER_NAME") ?? "e2e",
-    spreadsheetName: getEnvValue("E2E_SPREADSHEET_NAME") ?? SPREADSHEET_NAME,
+    spreadsheetId: getEnvValue("E2E_SPREADSHEET_ID") ?? getEnvValue("SPREADSHEET_ID"),
   };
 }
 
 export type E2ESpreadsheetContext = {
   spreadsheetId: string;
-  hivesFolderId: string;
-  e2eFolderId: string;
 };
 
 export async function resolveE2ESpreadsheetContext(
   config: E2EConfig,
 ): Promise<E2ESpreadsheetContext> {
-  if (!config.serviceAccountJson) {
-    throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is required for e2e tests.");
-  }
-
-  const drive = createDriveClient(config.serviceAccountJson);
-  const hivesFolderId =
-    config.hivesFolderId ?? (await findFolder(drive, config.hivesFolderName));
-  if (!hivesFolderId) {
+  if (!config.spreadsheetId) {
     throw new Error(
-      `Could not find '${config.hivesFolderName}' folder in Google Drive.`,
+      "E2E_SPREADSHEET_ID (or SPREADSHEET_ID) is required for e2e tests.",
     );
   }
 
-  const e2eFolderId = await findFolder(
-    drive,
-    config.hivesE2eFolderName,
-    hivesFolderId,
-  );
-  if (!e2eFolderId) {
-    throw new Error(
-      `Could not find '${config.hivesFolderName}/${config.hivesE2eFolderName}' folder in Google Drive.`,
-    );
-  }
-
-  const spreadsheetId = await findSpreadsheetInFolder(
-    drive,
-    config.spreadsheetName,
-    e2eFolderId,
-  );
-  if (!spreadsheetId) {
-    throw new Error(
-      `Could not find spreadsheet '${config.spreadsheetName}' in '${config.hivesFolderName}/${config.hivesE2eFolderName}'.`,
-    );
-  }
-
-  return { spreadsheetId, hivesFolderId, e2eFolderId };
+  return { spreadsheetId: config.spreadsheetId };
 }
 
 export async function prepareAndClearSpreadsheet(
@@ -115,20 +71,19 @@ export async function prepareAndClearSpreadsheet(
   });
 }
 
-export function buildE2EEnv(config: E2EConfig, spreadsheetId: string): Env {
+export function buildE2EEnv(config: E2EConfig): Env {
   if (!config.serviceAccountJson) {
     throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is required for e2e tests.");
   }
 
   return {
     GOOGLE_SERVICE_ACCOUNT_JSON: config.serviceAccountJson,
-    SPREADSHEET_ID: spreadsheetId,
-    AUTH_API_KEY: getEnvValue("AUTH_API_KEY") ?? "e2e-local-auth-key",
   };
 }
 
 export async function callMcpMethod(
   env: Env,
+  spreadsheetId: string,
   method: string,
   params: Record<string, unknown>,
   id = 1,
@@ -139,7 +94,7 @@ export async function callMcpMethod(
       headers: {
         "content-type": "application/json",
         accept: "application/json, text/event-stream",
-        authorization: `Bearer ${env.AUTH_API_KEY ?? ""}`,
+        [SPREADSHEET_ID_HEADER]: spreadsheetId,
       },
       body: JSON.stringify({
         jsonrpc: "2.0",
@@ -182,12 +137,14 @@ export async function callMcpMethod(
 
 export async function callTool(
   env: Env,
+  spreadsheetId: string,
   toolName: string,
   args: Record<string, unknown> = {},
   id = 1,
 ): Promise<Record<string, unknown>> {
   return callMcpMethod(
     env,
+    spreadsheetId,
     "tools/call",
     {
       name: toolName,

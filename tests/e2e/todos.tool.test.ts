@@ -12,18 +12,19 @@ import {
 } from "./e2eUtils.js";
 
 const config = getE2EConfig();
-const describeIfConfigured = config.serviceAccountJson ? describe : describe.skip;
+const describeIfConfigured = config.serviceAccountJson && config.spreadsheetId ? describe : describe.skip;
 
 describeIfConfigured("E2E tools: todos", () => {
   it("adds and reads todos via MCP tools", async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
     await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
-    const env = buildE2EEnv(config, ctx.spreadsheetId);
+    const env = buildE2EEnv(config);
 
-    await callTool(env, "hive_setup", {}, 501);
+    await callTool(env, ctx.spreadsheetId, "hive_setup", {}, 501);
 
     const addResponse = await callTool(
       env,
+      ctx.spreadsheetId,
       "hive_add_todo",
       {
         todo: "Check brood pattern",
@@ -36,7 +37,7 @@ describeIfConfigured("E2E tools: todos", () => {
     const addPayload = extractToolJson(addResponse);
     expect(addPayload.success).toBe(true);
 
-    const listResponse = await callTool(env, "hive_get_todos", {}, 503);
+    const listResponse = await callTool(env, ctx.spreadsheetId, "hive_get_todos", {}, 503);
     const listPayload = extractToolJson(listResponse);
     expect(listPayload.count).toBe(1);
 
