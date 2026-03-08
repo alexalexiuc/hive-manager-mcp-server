@@ -6,13 +6,14 @@ import {
   updateRow,
   getRows,
 } from '../services/sheets.js';
-import { requirePreparedSpreadsheetId } from '../services/spreadsheet.js';
+import { requireSpreadsheetContext } from '../services/spreadsheet.js';
 import {
   EventType,
   LOGS_SHEET_NAME,
   PROFILE_COL,
   PROFILES_SHEET_NAME,
 } from '../constants.js';
+import { isoTimestampSchema, yyyyMmDdDateSchema } from '../shared/validation.js';
 import { toolResponse } from './toolResponse.js';
 import type { Env } from '../types.js';
 
@@ -21,8 +22,7 @@ const LogEntrySchema = z.object({
   event_type: z
     .nativeEnum(EventType)
     .describe('Type of event: inspection, feeding, treatment, or harvest'),
-  timestamp: z
-    .string()
+  timestamp: isoTimestampSchema
     .optional()
     .describe('ISO timestamp of the event. Defaults to now.'),
   queen_seen: z
@@ -42,8 +42,7 @@ const LogEntrySchema = z.object({
     .optional()
     .describe('Actions performed during this event'),
   notes: z.string().optional().describe('Free-text notes and observations'),
-  next_check: z
-    .string()
+  next_check: yyyyMmDdDateSchema
     .optional()
     .describe('Recommended next inspection date (YYYY-MM-DD)'),
   tags: z.string().optional().describe('Optional comma-separated labels'),
@@ -79,7 +78,7 @@ export function registerLogTool(server: McpServer, env: Env) {
       inputSchema: LogEntrySchema.shape,
     },
     async (input: LogEntryInput) => {
-      const { spreadsheetId, sheets } = await requirePreparedSpreadsheetId(env);
+      const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
 
       const timestamp = input.timestamp ?? new Date().toISOString();
       const date = timestamp.split('T')[0];

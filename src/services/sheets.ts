@@ -31,22 +31,61 @@ function getSheetIdByTitle(
   return null;
 }
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  return JSON.stringify(error);
+}
+
+function isMissingSheetError(error: unknown): boolean {
+  const message = getErrorMessage(error).toLowerCase();
+  return (
+    message.includes('unable to parse range') ||
+    message.includes('range not found') ||
+    message.includes('sheet not found')
+  );
+}
+
+function toSheetOperationError(error: unknown, sheetName: string): Error {
+  if (isMissingSheetError(error)) {
+    return new Error(
+      `Required sheet "${sheetName}" is missing. Run hive_setup to create required sheets.`
+    );
+  }
+
+  if (error instanceof Error) {
+    return error;
+  }
+
+  return new Error(getErrorMessage(error));
+}
+
 export async function appendRow(
   sheets: sheets_v4.Sheets,
   spreadsheetId: string,
   sheetName: string,
   values: (string | number | undefined)[]
 ): Promise<void> {
-  await execWithBackoffRetry(async () => {
-    await sheets.spreadsheets.values.append({
-      spreadsheetId,
-      range: `${sheetName}!A1`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [values],
-      },
+  try {
+    await execWithBackoffRetry(async () => {
+      await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range: `${sheetName}!A1`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [values],
+        },
+      });
     });
-  });
+  } catch (error: unknown) {
+    throw toSheetOperationError(error, sheetName);
+  }
 }
 
 export async function getRows(
@@ -54,14 +93,18 @@ export async function getRows(
   spreadsheetId: string,
   sheetName: string
 ): Promise<string[][]> {
-  const response = await execWithBackoffRetry(async () => {
-    return sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A2:Z`,
+  try {
+    const response = await execWithBackoffRetry(async () => {
+      return sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A2:Z`,
+      });
     });
-  });
 
-  return (response.data.values as string[][]) || [];
+    return (response.data.values as string[][]) || [];
+  } catch (error: unknown) {
+    throw toSheetOperationError(error, sheetName);
+  }
 }
 
 export async function findRowIndex(
@@ -71,20 +114,25 @@ export async function findRowIndex(
   columnIndex: number,
   value: string
 ): Promise<number | null> {
-  const response = await execWithBackoffRetry(async () => {
-    return sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A1:Z`,
+  try {
+    const response = await execWithBackoffRetry(async () => {
+      return sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A1:Z`,
+      });
     });
-  });
 
-  const rows = (response.data.values as string[][]) || [];
-  for (let i = 1; i < rows.length; i++) {
-    if (rows[i][columnIndex] === value) {
-      return i + 1; // 1-based row index (row 1 is header)
+    const rows = (response.data.values as string[][]) || [];
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][columnIndex] === value) {
+        return i + 1; // 1-based row index (row 1 is header)
+      }
     }
+
+    return null;
+  } catch (error: unknown) {
+    throw toSheetOperationError(error, sheetName);
   }
-  return null;
 }
 
 export async function updateRow(
@@ -94,16 +142,20 @@ export async function updateRow(
   rowIndex: number,
   values: (string | number | undefined)[]
 ): Promise<void> {
-  await execWithBackoffRetry(async () => {
-    await sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range: `${sheetName}!A${rowIndex}`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [values],
-      },
+  try {
+    await execWithBackoffRetry(async () => {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${sheetName}!A${rowIndex}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [values],
+        },
+      });
     });
-  });
+  } catch (error: unknown) {
+    throw toSheetOperationError(error, sheetName);
+  }
 }
 
 export async function createSpreadsheet(
