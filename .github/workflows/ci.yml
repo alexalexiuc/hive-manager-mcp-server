@@ -50,10 +50,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Validate E2E secrets
+      - name: Validate E2E environment
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-          AUTH_API_KEY: ${{ secrets.AUTH_API_KEY }}
+          AUTH_API_KEY: ci-e2e-auth-key
           E2E_SPREADSHEET_ID: ${{ vars.E2E_SPREADSHEET_ID || secrets.E2E_SPREADSHEET_ID }}
         run: |
           if [ -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
@@ -72,6 +72,6 @@ jobs:
       - name: Run E2E tests
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-          AUTH_API_KEY: ${{ secrets.AUTH_API_KEY }}
+          AUTH_API_KEY: ci-e2e-auth-key
           E2E_SPREADSHEET_ID: ${{ vars.E2E_SPREADSHEET_ID || secrets.E2E_SPREADSHEET_ID }}
         run: npm run test:e2e

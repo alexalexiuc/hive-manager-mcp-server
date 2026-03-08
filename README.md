@@ -82,7 +82,6 @@ Use hive_setup before first write operation if spreadsheet structure may be miss
 For CI e2e:
 
 - Required repository secret: `GOOGLE_SERVICE_ACCOUNT_JSON`
-- Required repository secret: `AUTH_API_KEY`
 - Required repository variable/secret: `E2E_SPREADSHEET_ID`
 
 ## MCP Tools
@@ -131,9 +130,9 @@ For CI e2e:
 
 ## Environment Variables
 
-| Variable                      | Required  | Description                           |
-| ----------------------------- | --------- | ------------------------------------- |
-| `E2E_SPREADSHEET_ID`          | Yes (e2e) | Spreadsheet id used for e2e test runs |
-| `GOOGLE_SERVICE_ACCOUNT_JSON` | Yes       | Full service-account JSON string      |
+| Variable                      | Required  | Description                            |
+| ----------------------------- | --------- | -------------------------------------- |
+| `E2E_SPREADSHEET_ID`          | Yes (e2e) | Spreadsheet id used for e2e test runs  |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | Yes       | Full service-account JSON string       |
 | `AUTH_API_KEY`                | Yes       | Bearer token required for all requests |
-| `PORT`                        | No        | Local/server port (default: `3000`)   |
+| `PORT`                        | No        | Local/server port (default: `3000`)    |
