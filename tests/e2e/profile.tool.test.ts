@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PROFILE_COL, PROFILES_SHEET_NAME } from '../../src/constants.js';
+import { HIVE_COL, HIVES_SHEET_NAME } from '../../src/constants.js';
 import { createSheetsClient } from '../../src/services/google.js';
 import { getRows } from '../../src/services/sheets.js';
 import {
@@ -13,60 +13,58 @@ import {
 
 const config = requireE2EConfig();
 
-describe('E2E tools: profile', () => {
-  it('updates and reads profile data via MCP tools', async () => {
+describe('E2E tools: hive profile', () => {
+  it('creates, updates, and reads hive profile data via MCP tools', async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
     await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
     const env = buildE2EEnv(config);
 
-    await callTool(env, ctx.spreadsheetId, 'hive_setup', {}, 301);
+    await callTool(env, ctx.spreadsheetId, 'apiary_setup', {}, 301);
 
     const updateResponse = await callTool(
       env,
       ctx.spreadsheetId,
-      'hive_update_profile',
+      'apiary_update_hive_profile',
       {
         hive: '1',
-        strength: 'strong',
-        queen_status: 'queen_seen',
-        brood_status: 'healthy',
-        food_status: 'high',
+        queen_race: 'Carniolan',
+        location: 'orchard',
         notes: 'Profile updated via tool',
       },
       302,
     );
     const updatePayload = extractToolJson(updateResponse);
-    expect(updatePayload.success).toBe(true);
+    expect(updatePayload.hive).toBe('1');
+    expect(updatePayload.queen_race).toBe('Carniolan');
+    expect(updatePayload.location).toBe('orchard');
 
     const getResponse = await callTool(
       env,
       ctx.spreadsheetId,
-      'hive_get_profile',
+      'apiary_get_hive_status',
       { hive: '1' },
       303,
     );
-    const profilePayload = extractToolJson(getResponse);
-    expect(profilePayload.hive).toBe('1');
-    expect(profilePayload.strength).toBe('strong');
+    const hivePayload = extractToolJson(getResponse);
+    expect(hivePayload.hive).toBe('1');
+    expect(hivePayload.queen_race).toBe('Carniolan');
+    expect(hivePayload.location).toBe('orchard');
 
-    const allResponse = await callTool(
+    const listResponse = await callTool(
       env,
       ctx.spreadsheetId,
-      'hive_get_all_profiles',
+      'apiary_list_hives',
       {},
       304,
     );
-    const allPayload = extractToolJson(allResponse);
-    expect(allPayload.count).toBe(1);
+    const listPayload = extractToolJson(listResponse);
+    expect(listPayload.count).toBe(1);
 
     const sheets = createSheetsClient(config.serviceAccountJson!);
-    const profileRows = await getRows(
-      sheets,
-      ctx.spreadsheetId,
-      PROFILES_SHEET_NAME,
-    );
-    expect(profileRows).toHaveLength(1);
-    expect(profileRows[0][PROFILE_COL.hive]).toBe('1');
-    expect(profileRows[0][PROFILE_COL.strength]).toBe('strong');
+    const hiveRows = await getRows(sheets, ctx.spreadsheetId, HIVES_SHEET_NAME);
+    expect(hiveRows).toHaveLength(1);
+    expect(hiveRows[0][HIVE_COL.hive]).toBe('1');
+    expect(hiveRows[0][HIVE_COL.queen_race]).toBe('Carniolan');
+    expect(hiveRows[0][HIVE_COL.location]).toBe('orchard');
   }, 60_000);
 });

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  HIVE_COL,
+  HIVES_SHEET_NAME,
   LOG_COL,
   LOGS_SHEET_NAME,
-  PROFILE_COL,
-  PROFILES_SHEET_NAME,
+  HARVESTS_SHEET_NAME,
+  HARVEST_COL,
 } from '../../src/constants.js';
 import { createSheetsClient } from '../../src/services/google.js';
 import { getRows } from '../../src/services/sheets.js';
@@ -18,153 +20,70 @@ import {
 
 const config = requireE2EConfig();
 
-describe('E2E tool: hive_log_inspection', () => {
-  it('logs an inspection and creates/updates the profile row', async () => {
+describe('E2E tool: apiary_log_event (inspection)', () => {
+  it('logs an inspection and creates/updates the hive row', async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
     await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
     const env = buildE2EEnv(config);
 
-    await callTool(env, ctx.spreadsheetId, 'hive_setup', {}, 601);
+    await callTool(env, ctx.spreadsheetId, 'apiary_setup', {}, 601);
 
     const inspectResponse = await callTool(
       env,
       ctx.spreadsheetId,
-      'hive_log_inspection',
+      'apiary_log_event',
       {
         hive: '3',
-        queen_status: 'queen_seen',
+        event_type: 'inspection',
+        queen_status: 'seen',
         brood_status: 'healthy',
-        food_level: 'medium',
-        colony_strength: 'strong',
-        action_taken: 'Added super',
-        notes: 'Looked great',
-        next_inspection_date: '2026-03-22',
+        food_status: 'medium',
+        strength: 'strong',
+        summary: 'Looked great, added super',
+        next_check: '2026-03-22',
       },
       602,
     );
     const inspectPayload = extractToolJson(inspectResponse);
-    expect(inspectPayload.success).toBe(true);
+    expect(typeof inspectPayload.log_id).toBe('string');
+    expect(inspectPayload.hive).toBe('3');
 
     const sheets = createSheetsClient(config.serviceAccountJson!);
     const logRows = await getRows(sheets, ctx.spreadsheetId, LOGS_SHEET_NAME);
     expect(logRows).toHaveLength(1);
     expect(logRows[0][LOG_COL.hive]).toBe('3');
     expect(logRows[0][LOG_COL.event_type]).toBe('inspection');
-    expect(logRows[0][LOG_COL.queen_seen]).toBe('queen_seen');
-    expect(logRows[0][LOG_COL.brood_status]).toBe('healthy');
-    expect(logRows[0][LOG_COL.food_status]).toBe('medium');
-    expect(logRows[0][LOG_COL.action_taken]).toBe('Added super');
-    expect(logRows[0][LOG_COL.notes]).toBe('Looked great');
+    expect(logRows[0][LOG_COL.summary]).toBe('Looked great, added super');
     expect(logRows[0][LOG_COL.next_check]).toBe('2026-03-22');
 
-    const profileRows = await getRows(
-      sheets,
-      ctx.spreadsheetId,
-      PROFILES_SHEET_NAME,
-    );
-    expect(profileRows).toHaveLength(1);
-    expect(profileRows[0][PROFILE_COL.hive]).toBe('3');
-    expect(profileRows[0][PROFILE_COL.strength]).toBe('strong');
-    expect(profileRows[0][PROFILE_COL.queen_status]).toBe('queen_seen');
-    expect(profileRows[0][PROFILE_COL.brood_status]).toBe('healthy');
-    expect(profileRows[0][PROFILE_COL.food_status]).toBe('medium');
+    const hiveRows = await getRows(sheets, ctx.spreadsheetId, HIVES_SHEET_NAME);
+    expect(hiveRows).toHaveLength(1);
+    expect(hiveRows[0][HIVE_COL.hive]).toBe('3');
+    expect(hiveRows[0][HIVE_COL.strength]).toBe('strong');
+    expect(hiveRows[0][HIVE_COL.queen_status]).toBe('seen');
+    expect(hiveRows[0][HIVE_COL.brood_status]).toBe('healthy');
+    expect(hiveRows[0][HIVE_COL.food_status]).toBe('medium');
   }, 60_000);
 });
 
-describe('E2E tool: hive_get_latest_state', () => {
-  it('returns profile and most recent log entry for a hive', async () => {
-    const ctx = await resolveE2ESpreadsheetContext(config);
-    await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
-    const env = buildE2EEnv(config);
-
-    await callTool(env, ctx.spreadsheetId, 'hive_setup', {}, 611);
-
-    await callTool(
-      env,
-      ctx.spreadsheetId,
-      'hive_log_inspection',
-      {
-        hive: '4',
-        queen_status: 'queen_seen',
-        brood_status: 'spotty',
-        food_level: 'low',
-        colony_strength: 'medium',
-        notes: 'Needs feeding',
-      },
-      612,
-    );
-
-    const stateResponse = await callTool(
-      env,
-      ctx.spreadsheetId,
-      'hive_get_latest_state',
-      { hive: '4' },
-      613,
-    );
-    const statePayload = extractToolJson(stateResponse);
-
-    const profile = statePayload.profile as Record<string, string>;
-    expect(profile.hive).toBe('4');
-    expect(profile.strength).toBe('medium');
-    expect(profile.queen_status).toBe('queen_seen');
-
-    const latestLog = statePayload.latest_log as Record<string, string>;
-    expect(latestLog).not.toBeNull();
-    expect(latestLog.event_type).toBe('inspection');
-    expect(latestLog.brood_status).toBe('spotty');
-    expect(latestLog.food_status).toBe('low');
-    expect(latestLog.notes).toBe('Needs feeding');
-  }, 60_000);
-
-  it('returns null latest_log when hive has no log entries', async () => {
-    const ctx = await resolveE2ESpreadsheetContext(config);
-    await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
-    const env = buildE2EEnv(config);
-
-    await callTool(env, ctx.spreadsheetId, 'hive_setup', {}, 621);
-
-    await callTool(
-      env,
-      ctx.spreadsheetId,
-      'hive_update_profile',
-      { hive: '5', strength: 'weak', notes: 'Profile only, no logs' },
-      622,
-    );
-
-    const stateResponse = await callTool(
-      env,
-      ctx.spreadsheetId,
-      'hive_get_latest_state',
-      { hive: '5' },
-      623,
-    );
-    const statePayload = extractToolJson(stateResponse);
-
-    const profile = statePayload.profile as Record<string, string>;
-    expect(profile.hive).toBe('5');
-    expect(profile.strength).toBe('weak');
-    expect(statePayload.latest_log).toBeNull();
-  }, 60_000);
-});
-
-describe('E2E tool: hive_list_due_for_check', () => {
+describe('E2E tool: apiary_list_due_for_check', () => {
   it('returns hives not checked within the specified number of days', async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
     await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
     const env = buildE2EEnv(config);
 
-    await callTool(env, ctx.spreadsheetId, 'hive_setup', {}, 631);
+    await callTool(env, ctx.spreadsheetId, 'apiary_setup', {}, 631);
 
     // Hive 6: inspected long ago (stale)
     await callTool(
       env,
       ctx.spreadsheetId,
-      'hive_log_entry',
+      'apiary_log_event',
       {
         hive: '6',
         event_type: 'inspection',
         timestamp: '2020-01-01T10:00:00.000Z',
-        notes: 'Old inspection',
+        summary: 'Old inspection',
       },
       632,
     );
@@ -174,12 +93,12 @@ describe('E2E tool: hive_list_due_for_check', () => {
     await callTool(
       env,
       ctx.spreadsheetId,
-      'hive_log_entry',
+      'apiary_log_event',
       {
         hive: '7',
         event_type: 'inspection',
         timestamp: todayTs,
-        notes: 'Fresh inspection',
+        summary: 'Fresh inspection',
       },
       633,
     );
@@ -187,12 +106,11 @@ describe('E2E tool: hive_list_due_for_check', () => {
     const dueResponse = await callTool(
       env,
       ctx.spreadsheetId,
-      'hive_list_due_for_check',
+      'apiary_list_due_for_check',
       { days: 7 },
       634,
     );
     const duePayload = extractToolJson(dueResponse);
-    expect(duePayload.days_threshold).toBe(7);
 
     const hives = duePayload.hives as Array<Record<string, string>>;
     const hiveIds = hives.map((h) => h.hive);
@@ -205,21 +123,20 @@ describe('E2E tool: hive_list_due_for_check', () => {
     await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
     const env = buildE2EEnv(config);
 
-    await callTool(env, ctx.spreadsheetId, 'hive_setup', {}, 641);
+    await callTool(env, ctx.spreadsheetId, 'apiary_setup', {}, 641);
 
-    // Add a profile with no last_check by using update_profile directly
     await callTool(
       env,
       ctx.spreadsheetId,
-      'hive_update_profile',
-      { hive: '8', strength: 'strong', notes: 'Never inspected' },
+      'apiary_update_hive_profile',
+      { hive: '8', notes: 'Never inspected' },
       642,
     );
 
     const dueResponse = await callTool(
       env,
       ctx.spreadsheetId,
-      'hive_list_due_for_check',
+      'apiary_list_due_for_check',
       { days: 7 },
       643,
     );
@@ -228,5 +145,67 @@ describe('E2E tool: hive_list_due_for_check', () => {
     const hives = duePayload.hives as Array<Record<string, string>>;
     const hiveIds = hives.map((h) => h.hive);
     expect(hiveIds).toContain('8');
+  }, 60_000);
+});
+
+describe('E2E tool: apiary_log_harvest', () => {
+  it('appends harvest to harvests and logs sheets, updates hive row', async () => {
+    const ctx = await resolveE2ESpreadsheetContext(config);
+    await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
+    const env = buildE2EEnv(config);
+
+    await callTool(env, ctx.spreadsheetId, 'apiary_setup', {}, 651);
+
+    // First create the hive
+    await callTool(
+      env,
+      ctx.spreadsheetId,
+      'apiary_update_hive_profile',
+      { hive: '9', location: 'apiary' },
+      652,
+    );
+
+    const harvestResponse = await callTool(
+      env,
+      ctx.spreadsheetId,
+      'apiary_log_harvest',
+      {
+        hive: '9',
+        weight_kg: 12.5,
+        season: 'acacia',
+        year: 2026,
+        notes: 'First harvest',
+      },
+      653,
+    );
+    const harvestPayload = extractToolJson(harvestResponse);
+    expect(typeof harvestPayload.harvest_id).toBe('string');
+    expect(harvestPayload.hive).toBe('9');
+    expect(harvestPayload.weight_kg).toBe(12.5);
+    expect(harvestPayload.season).toBe('acacia');
+    expect(harvestPayload.year).toBe(2026);
+
+    const sheets = createSheetsClient(config.serviceAccountJson!);
+    const harvestRows = await getRows(sheets, ctx.spreadsheetId, HARVESTS_SHEET_NAME);
+    expect(harvestRows).toHaveLength(1);
+    expect(harvestRows[0][HARVEST_COL.hive]).toBe('9');
+    expect(harvestRows[0][HARVEST_COL.weight_kg]).toBe('12.5');
+    expect(harvestRows[0][HARVEST_COL.season]).toBe('acacia');
+
+    const logRows = await getRows(sheets, ctx.spreadsheetId, LOGS_SHEET_NAME);
+    const harvestLogRow = logRows.find((r) => r[LOG_COL.event_type] === 'harvest');
+    expect(harvestLogRow).toBeDefined();
+    expect(harvestLogRow![LOG_COL.hive]).toBe('9');
+
+    const summaryResponse = await callTool(
+      env,
+      ctx.spreadsheetId,
+      'apiary_get_harvest_summary',
+      { year: 2026 },
+      654,
+    );
+    const summaryPayload = extractToolJson(summaryResponse);
+    expect(summaryPayload.total_kg).toBe(12.5);
+    expect((summaryPayload.by_hive as Array<Record<string, unknown>>)[0]?.hive).toBe('9');
   }, 60_000);
 });

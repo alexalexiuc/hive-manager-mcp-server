@@ -23,7 +23,7 @@ describe('updateRow', () => {
 });
 
 describe('createSpreadsheet', () => {
-  it.todo('creates spreadsheet with logs, profiles, and apiary_todos sheets');
+  it.todo('creates spreadsheet with hives, logs, harvests, todos, and relocations sheets');
   it.todo('adds correct header rows to each sheet');
   it.todo('applies bold formatting and frozen row to all header rows');
   it.todo('returns spreadsheet ID');

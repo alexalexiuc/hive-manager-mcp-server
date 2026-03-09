@@ -1,9 +1,10 @@
 import 'dotenv/config';
 import worker from '../../src/index.js';
 import {
-  APIARY_TODOS_SHEET_NAME,
+  HIVES_SHEET_NAME,
   LOGS_SHEET_NAME,
-  PROFILES_SHEET_NAME,
+  HARVESTS_SHEET_NAME,
+  TODOS_SHEET_NAME,
   RELOCATIONS_SHEET_NAME,
   SPREADSHEET_ID_HEADER,
 } from '../../src/constants.js';
@@ -94,9 +95,10 @@ export async function prepareAndClearSpreadsheet(
       spreadsheetId,
       requestBody: {
         ranges: [
+          `${HIVES_SHEET_NAME}!A2:Z`,
           `${LOGS_SHEET_NAME}!A2:Z`,
-          `${PROFILES_SHEET_NAME}!A2:Z`,
-          `${APIARY_TODOS_SHEET_NAME}!A2:Z`,
+          `${HARVESTS_SHEET_NAME}!A2:Z`,
+          `${TODOS_SHEET_NAME}!A2:Z`,
           `${RELOCATIONS_SHEET_NAME}!A2:Z`,
         ],
       },

@@ -1,39 +1,58 @@
 export const SPREADSHEET_NAME = 'hive_manager';
+export const HIVES_SHEET_NAME = 'hives';
 export const LOGS_SHEET_NAME = 'logs';
-export const PROFILES_SHEET_NAME = 'profiles';
-export const APIARY_TODOS_SHEET_NAME = 'apiary_todos';
+export const HARVESTS_SHEET_NAME = 'harvests';
+export const TODOS_SHEET_NAME = 'todos';
 export const RELOCATIONS_SHEET_NAME = 'relocations';
 
-export const LOGS_SHEET_HEADERS = [
-  'timestamp',
+export const HIVES_SHEET_HEADERS = [
   'hive',
-  'event_type',
-  'queen_seen',
-  'brood_status',
-  'food_status',
-  'action_taken',
-  'notes',
-  'next_check',
-  'tags',
-] as const;
-
-export const PROFILES_SHEET_HEADERS = [
-  'hive',
+  'hive_type',
+  'units',
   'last_check',
   'next_check',
   'strength',
   'queen_status',
   'brood_status',
   'food_status',
+  'last_action',
+  'last_treatment',
   'notes',
-  'todos',
-  'updated_at',
-  'origin_hive',
   'queen_race',
   'queen_birth_year',
+  'origin_hive',
+  'location',
+  'active',
+  'updated_at',
 ] as const;
 
-export const APIARY_TODOS_SHEET_HEADERS = [
+export const LOGS_SHEET_HEADERS = [
+  'log_id',
+  'timestamp',
+  'hive',
+  'event_type',
+  'summary',
+  'next_check',
+  'treatment_product',
+  'treatment_dose',
+  'treatment_duration',
+  'tags',
+] as const;
+
+export const HARVESTS_SHEET_HEADERS = [
+  'harvest_id',
+  'timestamp',
+  'hive',
+  'year',
+  'weight_kg',
+  'season',
+  'units_extracted',
+  'notes',
+] as const;
+
+export const TODOS_SHEET_HEADERS = [
+  'todo_id',
+  'hive',
   'todo',
   'priority',
   'status',
@@ -55,6 +74,7 @@ export enum EventType {
   FEEDING = 'feeding',
   TREATMENT = 'treatment',
   HARVEST = 'harvest',
+  NOTE = 'note',
 }
 
 export const GOOGLE_SCOPES = [
@@ -62,23 +82,27 @@ export const GOOGLE_SCOPES = [
   'https://www.googleapis.com/auth/spreadsheets',
 ];
 
-export const DEFAULT_LOG_LIMIT = 50;
-export const MAX_LOG_LIMIT = 500;
+export const DEFAULT_LOG_LIMIT = 20;
+export const MAX_LOG_LIMIT = 200;
 
 export const SPREADSHEET_ID_HEADER = 'x-spreadsheet-id';
 
 // Column index maps — derived from header arrays so indices stay in sync.
+export const HIVE_COL = Object.fromEntries(
+  HIVES_SHEET_HEADERS.map((h, i) => [h, i]),
+) as { [K in (typeof HIVES_SHEET_HEADERS)[number]]: number };
+
 export const LOG_COL = Object.fromEntries(
   LOGS_SHEET_HEADERS.map((h, i) => [h, i]),
 ) as { [K in (typeof LOGS_SHEET_HEADERS)[number]]: number };
 
-export const PROFILE_COL = Object.fromEntries(
-  PROFILES_SHEET_HEADERS.map((h, i) => [h, i]),
-) as { [K in (typeof PROFILES_SHEET_HEADERS)[number]]: number };
+export const HARVEST_COL = Object.fromEntries(
+  HARVESTS_SHEET_HEADERS.map((h, i) => [h, i]),
+) as { [K in (typeof HARVESTS_SHEET_HEADERS)[number]]: number };
 
 export const TODO_COL = Object.fromEntries(
-  APIARY_TODOS_SHEET_HEADERS.map((h, i) => [h, i]),
-) as { [K in (typeof APIARY_TODOS_SHEET_HEADERS)[number]]: number };
+  TODOS_SHEET_HEADERS.map((h, i) => [h, i]),
+) as { [K in (typeof TODOS_SHEET_HEADERS)[number]]: number };
 
 export const RELOCATION_COL = Object.fromEntries(
   RELOCATIONS_SHEET_HEADERS.map((h, i) => [h, i]),
