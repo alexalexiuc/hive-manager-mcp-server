@@ -8,6 +8,7 @@ import {
 } from '../services/sheets.js';
 import { requireSpreadsheetContext } from '../services/spreadsheet.js';
 import { PROFILE_COL, PROFILES_SHEET_NAME } from '../constants.js';
+import { yyyyMmDdDateSchema } from '../shared/validation.js';
 import { toolResponse } from './toolResponse.js';
 import type { Env, HiveProfile } from '../types.js';
 
@@ -15,6 +16,7 @@ function rowToProfile(row: string[]): HiveProfile {
   return {
     hive: row[PROFILE_COL.hive] ?? '',
     last_check: row[PROFILE_COL.last_check] ?? '',
+    next_check: row[PROFILE_COL.next_check] ?? '',
     strength: row[PROFILE_COL.strength] ?? '',
     queen_status: row[PROFILE_COL.queen_status] ?? '',
     brood_status: row[PROFILE_COL.brood_status] ?? '',
@@ -48,6 +50,9 @@ const UpdateProfileSchema = z.object({
   food_status: z.string().optional().describe('Food/honey level'),
   notes: z.string().optional().describe('General notes'),
   todos: z.string().optional().describe('Upcoming actions or todos'),
+  next_check: yyyyMmDdDateSchema
+    .optional()
+    .describe('Recommended next inspection date (YYYY-MM-DD)'),
   origin_hive: z
     .string()
     .optional()
@@ -119,6 +124,7 @@ export function registerProfileTools(server: McpServer, env: Env) {
         const profileRow = [
           input.hive,
           '',
+          input.next_check ?? '',
           input.strength ?? '',
           input.queen_status ?? '',
           input.brood_status ?? '',
@@ -138,6 +144,7 @@ export function registerProfileTools(server: McpServer, env: Env) {
         const mergedRow = [
           input.hive,
           existing[PROFILE_COL.last_check] ?? '',
+          input.next_check ?? existing[PROFILE_COL.next_check] ?? '',
           input.strength ?? existing[PROFILE_COL.strength] ?? '',
           input.queen_status ?? existing[PROFILE_COL.queen_status] ?? '',
           input.brood_status ?? existing[PROFILE_COL.brood_status] ?? '',

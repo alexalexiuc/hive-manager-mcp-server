@@ -25,10 +25,12 @@ const LogEntrySchema = z.object({
   timestamp: isoTimestampSchema
     .optional()
     .describe('ISO timestamp of the event. Defaults to now.'),
-  queen_seen: z
+  queen_status: z
     .string()
     .optional()
-    .describe('Was the queen seen? (e.g. "true", "false", "eggs only")'),
+    .describe(
+      'Queen status (e.g. "queen_seen", "not_seen", "eggs_only", "missing"). Use a descriptive string, not a boolean.'
+    ),
   brood_status: z
     .string()
     .optional()
@@ -88,7 +90,7 @@ export function registerLogTool(server: McpServer, env: Env) {
         timestamp,
         input.hive,
         input.event_type,
-        input.queen_seen ?? '',
+        input.queen_status ?? '',
         input.brood_status ?? '',
         input.food_status ?? '',
         input.action_taken ?? '',
@@ -114,8 +116,9 @@ export function registerLogTool(server: McpServer, env: Env) {
         const profileRow = [
           input.hive,
           date,
+          input.next_check ?? '',
           input.strength ?? '',
-          input.queen_seen ?? '',
+          input.queen_status ?? '',
           input.brood_status ?? '',
           input.food_status ?? '',
           input.notes ?? '',
@@ -139,8 +142,9 @@ export function registerLogTool(server: McpServer, env: Env) {
         const mergedRow = [
           input.hive,
           date,
+          input.next_check ?? existing[PROFILE_COL.next_check] ?? '',
           input.strength ?? existing[PROFILE_COL.strength] ?? '',
-          input.queen_seen ?? existing[PROFILE_COL.queen_status] ?? '',
+          input.queen_status ?? existing[PROFILE_COL.queen_status] ?? '',
           input.brood_status ?? existing[PROFILE_COL.brood_status] ?? '',
           input.food_status ?? existing[PROFILE_COL.food_status] ?? '',
           input.notes ?? existing[PROFILE_COL.notes] ?? '',

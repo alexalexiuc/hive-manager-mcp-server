@@ -83,7 +83,7 @@ function findTodoRowIndexByCreatedAt(
 
 export function registerTodoTools(server: McpServer, env: Env) {
   server.registerTool(
-    'hive_list_todos',
+    'hive_get_todos',
     {
       description: 'List all general apiary todos from the apiary_todos sheet.',
     },
