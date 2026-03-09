@@ -2,6 +2,7 @@ import { match } from 'path-to-regexp';
 import type { RouteDefinition } from './types.js';
 import { handleHealthRequest } from './handlers/health.js';
 import { handleMcpRequest } from './handlers/mcp.js';
+import { handleCaloriesRequest } from './handlers/calories.js';
 import {
   handleOAuthMetadata,
   handleOAuthAuthorizeGet,
@@ -21,6 +22,7 @@ const routes: CompiledRoute[] = (
     { method: 'POST', path: '/oauth/authorize',                          isPublic: true,  handler: handleOAuthAuthorizePost },
     { method: 'POST', path: '/oauth/token',                              isPublic: true,  handler: handleOAuthToken },
     { method: 'POST', path: '/mcp/:spreadsheetId',                       isPublic: false, handler: handleMcpRequest },
+    { method: 'POST', path: '/calories/:spreadsheetId',                  isPublic: false, handler: handleCaloriesRequest },
   ] satisfies RouteDefinition[]
 ).map((route) => ({ ...route, matcher: match(route.path) }));
 
