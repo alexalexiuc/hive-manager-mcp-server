@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  LOG_COL,
   LOGS_SHEET_NAME,
-  PROFILES_SHEET_NAME,
   PROFILE_COL,
+  PROFILES_SHEET_NAME,
 } from '../../src/constants.js';
 import { createSheetsClient } from '../../src/services/google.js';
 import { getRows } from '../../src/services/sheets.js';
@@ -51,11 +52,11 @@ describe('E2E tool: hive_log_entry', () => {
     );
 
     expect(logRows).toHaveLength(1);
-    expect(logRows[0][1]).toBe('1');
-    expect(logRows[0][2]).toBe('inspection');
+    expect(logRows[0][LOG_COL.hive]).toBe('1');
+    expect(logRows[0][LOG_COL.event_type]).toBe('inspection');
 
     expect(profileRows).toHaveLength(1);
-    expect(profileRows[0][0]).toBe('1');
+    expect(profileRows[0][PROFILE_COL.hive]).toBe('1');
     expect(profileRows[0][PROFILE_COL.strength]).toBe('medium');
   }, 60_000);
 });

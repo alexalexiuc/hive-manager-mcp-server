@@ -66,7 +66,7 @@ describe('E2E tools: profile', () => {
       PROFILES_SHEET_NAME,
     );
     expect(profileRows).toHaveLength(1);
-    expect(profileRows[0][0]).toBe('1');
+    expect(profileRows[0][PROFILE_COL.hive]).toBe('1');
     expect(profileRows[0][PROFILE_COL.strength]).toBe('strong');
   }, 60_000);
 });
