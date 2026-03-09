@@ -8,6 +8,10 @@ import {
   RELOCATIONS_SHEET_NAME,
 } from '../../src/constants.js';
 import {
+  MEALS_SHEET_NAME,
+  PROFILE_SHEET_NAME,
+} from '../../src/calories/constants.js';
+import {
   execWithBackoffRetry,
   isRetryableGoogleQuotaError,
 } from '../../src/shared/retry.js';
@@ -129,6 +133,39 @@ export async function prepareAndClearSpreadsheet(
   });
 }
 
+export async function prepareAndClearCaloriesSpreadsheet(
+  config: E2EConfig,
+  spreadsheetId: string,
+): Promise<void> {
+  if (!config.serviceAccountJson) {
+    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is required for e2e tests.');
+  }
+
+  const sheets = createSheetsClient(config.serviceAccountJson);
+  const spreadsheet = await execWithBackoffRetry(async () => {
+    return sheets.spreadsheets.get({ spreadsheetId });
+  });
+  const existingTitles = new Set(
+    (spreadsheet.data.sheets ?? [])
+      .map((sheet) => sheet.properties?.title)
+      .filter((title): title is string => Boolean(title)),
+  );
+  const ranges = [MEALS_SHEET_NAME, PROFILE_SHEET_NAME]
+    .filter((sheetName) => existingTitles.has(sheetName))
+    .map((sheetName) => `${sheetName}!A2:Z`);
+
+  if (ranges.length === 0) {
+    return;
+  }
+
+  await execWithBackoffRetry(async () => {
+    await sheets.spreadsheets.values.batchClear({
+      spreadsheetId,
+      requestBody: { ranges },
+    });
+  });
+}
+
 export function buildE2EEnv(config: E2EConfig): Env {
   if (!config.serviceAccountJson) {
     throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is required for e2e tests.');
@@ -153,6 +190,7 @@ export async function callMcpMethod(
   method: string,
   params: Record<string, unknown>,
   id = 1,
+  endpoint = 'apiary',
 ): Promise<Record<string, unknown>> {
   const accessToken = await signToken(
     { client_id: env.OAUTH_CLIENT_ID, exp: Date.now() + 3600 * 1000 },
@@ -160,7 +198,7 @@ export async function callMcpMethod(
   );
 
   return execWithBackoffRetry(async () => {
-    const request = new Request(`https://example.com/mcp/${spreadsheetId}`, {
+    const request = new Request(`https://example.com/${endpoint}/${spreadsheetId}`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -212,6 +250,7 @@ export async function callTool(
   toolName: string,
   args: Record<string, unknown> = {},
   id = 1,
+  endpoint = 'apiary',
 ): Promise<Record<string, unknown>> {
   return callMcpMethod(
     env,
@@ -222,7 +261,18 @@ export async function callTool(
       arguments: args,
     },
     id,
+    endpoint,
   );
+}
+
+export async function callCaloriesTool(
+  env: Env,
+  spreadsheetId: string,
+  toolName: string,
+  args: Record<string, unknown> = {},
+  id = 1,
+): Promise<Record<string, unknown>> {
+  return callTool(env, spreadsheetId, toolName, args, id, 'calories');
 }
 
 export function extractToolJson(

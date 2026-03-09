@@ -21,7 +21,7 @@ const routes: CompiledRoute[] = (
     { method: 'GET',  path: '/oauth/authorize',                          isPublic: true,  handler: handleOAuthAuthorizeGet },
     { method: 'POST', path: '/oauth/authorize',                          isPublic: true,  handler: handleOAuthAuthorizePost },
     { method: 'POST', path: '/oauth/token',                              isPublic: true,  handler: handleOAuthToken },
-    { method: 'POST', path: '/mcp/:spreadsheetId',                       isPublic: false, handler: handleMcpRequest },
+    { method: 'POST', path: '/apiary/:spreadsheetId',                    isPublic: false, handler: handleMcpRequest },
     { method: 'POST', path: '/calories/:spreadsheetId',                  isPublic: false, handler: handleCaloriesRequest },
   ] satisfies RouteDefinition[]
 ).map((route) => ({ ...route, matcher: match(route.path) }));
