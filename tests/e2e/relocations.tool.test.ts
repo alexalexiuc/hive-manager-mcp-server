@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RELOCATIONS_SHEET_NAME } from '../../src/constants.js';
+import { RELOCATION_COL, RELOCATIONS_SHEET_NAME } from '../../src/constants.js';
 import { createSheetsClient } from '../../src/services/google.js';
 import { getRows } from '../../src/services/sheets.js';
 import {
@@ -62,7 +62,7 @@ describe('E2E tools: relocations', () => {
       RELOCATIONS_SHEET_NAME,
     );
     expect(rows).toHaveLength(1);
-    expect(rows[0][1]).toBe('1,2');
-    expect(rows[0][2]).toBe('North Apiary');
+    expect(rows[0][RELOCATION_COL.hives]).toBe('1,2');
+    expect(rows[0][RELOCATION_COL.location]).toBe('North Apiary');
   }, 60_000);
 });

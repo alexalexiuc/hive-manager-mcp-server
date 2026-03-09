@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { LOGS_SHEET_NAME, PROFILES_SHEET_NAME } from '../../src/constants.js';
+import {
+  LOG_COL,
+  LOGS_SHEET_NAME,
+  PROFILE_COL,
+  PROFILES_SHEET_NAME,
+} from '../../src/constants.js';
 import { createSheetsClient } from '../../src/services/google.js';
 import { getRows } from '../../src/services/sheets.js';
 import {
@@ -43,14 +48,14 @@ describe('E2E tool: hive_log_inspection', () => {
     const sheets = createSheetsClient(config.serviceAccountJson!);
     const logRows = await getRows(sheets, ctx.spreadsheetId, LOGS_SHEET_NAME);
     expect(logRows).toHaveLength(1);
-    expect(logRows[0][1]).toBe('3');
-    expect(logRows[0][2]).toBe('inspection');
-    expect(logRows[0][3]).toBe('queen_seen');
-    expect(logRows[0][4]).toBe('healthy');
-    expect(logRows[0][5]).toBe('medium');
-    expect(logRows[0][6]).toBe('Added super');
-    expect(logRows[0][7]).toBe('Looked great');
-    expect(logRows[0][8]).toBe('2026-03-22');
+    expect(logRows[0][LOG_COL.hive]).toBe('3');
+    expect(logRows[0][LOG_COL.event_type]).toBe('inspection');
+    expect(logRows[0][LOG_COL.queen_seen]).toBe('queen_seen');
+    expect(logRows[0][LOG_COL.brood_status]).toBe('healthy');
+    expect(logRows[0][LOG_COL.food_status]).toBe('medium');
+    expect(logRows[0][LOG_COL.action_taken]).toBe('Added super');
+    expect(logRows[0][LOG_COL.notes]).toBe('Looked great');
+    expect(logRows[0][LOG_COL.next_check]).toBe('2026-03-22');
 
     const profileRows = await getRows(
       sheets,
@@ -58,11 +63,11 @@ describe('E2E tool: hive_log_inspection', () => {
       PROFILES_SHEET_NAME,
     );
     expect(profileRows).toHaveLength(1);
-    expect(profileRows[0][0]).toBe('3');
-    expect(profileRows[0][2]).toBe('strong');
-    expect(profileRows[0][3]).toBe('queen_seen');
-    expect(profileRows[0][4]).toBe('healthy');
-    expect(profileRows[0][5]).toBe('medium');
+    expect(profileRows[0][PROFILE_COL.hive]).toBe('3');
+    expect(profileRows[0][PROFILE_COL.strength]).toBe('strong');
+    expect(profileRows[0][PROFILE_COL.queen_status]).toBe('queen_seen');
+    expect(profileRows[0][PROFILE_COL.brood_status]).toBe('healthy');
+    expect(profileRows[0][PROFILE_COL.food_status]).toBe('medium');
   }, 60_000);
 });
 

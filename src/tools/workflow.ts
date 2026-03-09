@@ -22,6 +22,7 @@ function rowToProfile(row: string[]): HiveProfile {
   return {
     hive: row[PROFILE_COL.hive] ?? '',
     last_check: row[PROFILE_COL.last_check] ?? '',
+    next_check: row[PROFILE_COL.next_check] ?? '',
     strength: row[PROFILE_COL.strength] ?? '',
     queen_status: row[PROFILE_COL.queen_status] ?? '',
     brood_status: row[PROFILE_COL.brood_status] ?? '',
@@ -214,6 +215,7 @@ export function registerWorkflowTools(server: McpServer, env: Env) {
         const profileRow = [
           input.hive,
           date,
+          input.next_inspection_date ?? '',
           input.colony_strength ?? '',
           input.queen_status ?? '',
           input.brood_status ?? '',
@@ -237,6 +239,7 @@ export function registerWorkflowTools(server: McpServer, env: Env) {
         const mergedRow = [
           input.hive,
           date,
+          input.next_inspection_date ?? existing[PROFILE_COL.next_check] ?? '',
           input.colony_strength ?? existing[PROFILE_COL.strength] ?? '',
           input.queen_status ?? existing[PROFILE_COL.queen_status] ?? '',
           input.brood_status ?? existing[PROFILE_COL.brood_status] ?? '',

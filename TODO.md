@@ -1,0 +1,7 @@
+- [ ] Store latest log in hive profile for easier retrieval, and update tools to use it instead.
+- [ ] Review the list of tools to reduce their number and make names more natural-language.
+- [x] Update e2e tests to use `*_COL` constants for column indexes instead of direct index numbers.
+- [ ] Add unit tests.
+- [ ] Update ESLint to the latest version.
+- [ ] Add Prettier.
+- [ ] Add Husky and lint-staged.

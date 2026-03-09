@@ -14,6 +14,7 @@ export interface HiveLogEntry {
 export interface HiveProfile {
   hive: string;
   last_check?: string;
+  next_check?: string;
   strength?: string;
   queen_status?: string;
   brood_status?: string;

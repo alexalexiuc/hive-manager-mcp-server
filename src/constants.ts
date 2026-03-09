@@ -20,6 +20,7 @@ export const LOGS_SHEET_HEADERS = [
 export const PROFILES_SHEET_HEADERS = [
   'hive',
   'last_check',
+  'next_check',
   'strength',
   'queen_status',
   'brood_status',
