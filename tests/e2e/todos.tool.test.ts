@@ -39,7 +39,7 @@ describe('E2E tools: todos', () => {
     const listResponse = await callTool(
       env,
       ctx.spreadsheetId,
-      'hive_get_todos',
+      'hive_list_todos',
       {},
       503,
     );
@@ -69,7 +69,7 @@ describe('E2E tools: todos', () => {
     const markDoneResponse = await callTool(
       env,
       ctx.spreadsheetId,
-      'hive_mark_todo_done',
+      'hive_complete_todo',
       {
         created_at: createdAt,
       },
@@ -81,7 +81,7 @@ describe('E2E tools: todos', () => {
     const updatedListResponse = await callTool(
       env,
       ctx.spreadsheetId,
-      'hive_get_todos',
+      'hive_list_todos',
       {},
       506,
     );
