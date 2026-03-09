@@ -1,67 +1,25 @@
 import { sheets_v4 } from 'googleapis';
+import { getSheetIdByTitle } from '../services/sheets';
+import { execWithBackoffRetry } from '../shared/retry';
 import {
   MEALS_SHEET_NAME,
   PROFILE_SHEET_NAME,
   MEALS_SHEET_HEADERS,
   PROFILE_SHEET_HEADERS,
-} from '../constants.js';
-import { execWithBackoffRetry } from '../../shared/retry.js';
-
-const REQUIRED_SHEETS = [MEALS_SHEET_NAME, PROFILE_SHEET_NAME] as const;
-
-function getSheetIdByTitle(
-  spreadsheet: sheets_v4.Schema$Spreadsheet,
-  title: string,
-): number | null {
-  for (const sheet of spreadsheet.sheets ?? []) {
-    if (
-      sheet.properties?.title === title &&
-      typeof sheet.properties.sheetId === 'number'
-    ) {
-      return sheet.properties.sheetId;
-    }
-  }
-  return null;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  return JSON.stringify(error);
-}
-
-function isMissingSheetError(error: unknown): boolean {
-  const message = getErrorMessage(error).toLowerCase();
-  return (
-    message.includes('unable to parse range') ||
-    message.includes('range not found') ||
-    message.includes('sheet not found')
-  );
-}
-
-export function toCaloriesSheetOperationError(
-  error: unknown,
-  sheetName: string,
-): Error {
-  if (isMissingSheetError(error)) {
-    return new Error(
-      `Required sheet "${sheetName}" is missing. Run calories_setup to create required sheets.`,
-    );
-  }
-  if (error instanceof Error) return error;
-  return new Error(getErrorMessage(error));
-}
+  REQUIRED_CALORIES_SHEETS,
+} from './constants';
 
 export async function ensureCaloriesSpreadsheetStructure(
   sheets: sheets_v4.Sheets,
-  spreadsheetId: string,
+  spreadsheetId: string
 ): Promise<void> {
   const initial = await execWithBackoffRetry(async () => {
     return sheets.spreadsheets.get({ spreadsheetId });
   });
 
   const hasMeals = getSheetIdByTitle(initial.data, MEALS_SHEET_NAME) !== null;
-  const hasProfile = getSheetIdByTitle(initial.data, PROFILE_SHEET_NAME) !== null;
+  const hasProfile =
+    getSheetIdByTitle(initial.data, PROFILE_SHEET_NAME) !== null;
   const defaultSheetId = getSheetIdByTitle(initial.data, 'Sheet1');
 
   const setupRequests: sheets_v4.Schema$Request[] = [];
@@ -103,8 +61,14 @@ export async function ensureCaloriesSpreadsheetStructure(
       requestBody: {
         valueInputOption: 'USER_ENTERED',
         data: [
-          { range: `${MEALS_SHEET_NAME}!A1`, values: [[...MEALS_SHEET_HEADERS]] },
-          { range: `${PROFILE_SHEET_NAME}!A1`, values: [[...PROFILE_SHEET_HEADERS]] },
+          {
+            range: `${MEALS_SHEET_NAME}!A1`,
+            values: [[...MEALS_SHEET_HEADERS]],
+          },
+          {
+            range: `${PROFILE_SHEET_NAME}!A1`,
+            values: [[...PROFILE_SHEET_HEADERS]],
+          },
         ],
       },
     });
@@ -116,7 +80,7 @@ export async function ensureCaloriesSpreadsheetStructure(
   });
 
   const formatRequests: sheets_v4.Schema$Request[] = [];
-  for (const title of REQUIRED_SHEETS) {
+  for (const title of REQUIRED_CALORIES_SHEETS) {
     const sheetId = getSheetIdByTitle(updated.data, title);
     if (sheetId === null) continue;
 
@@ -138,7 +102,7 @@ export async function ensureCaloriesSpreadsheetStructure(
           properties: { sheetId, gridProperties: { frozenRowCount: 1 } },
           fields: 'gridProperties.frozenRowCount',
         },
-      },
+      }
     );
   }
 

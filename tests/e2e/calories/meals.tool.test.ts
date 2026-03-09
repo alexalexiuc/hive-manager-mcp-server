@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createSheetsClient } from '../../src/services/google.js';
-import { getRows } from '../../src/services/sheets.js';
-import { MEALS_SHEET_NAME, MEAL_COL } from '../../src/calories/constants.js';
+import { MEALS_SHEET_NAME, MEAL_COL } from '../../../src/calories/constants';
 import {
   buildE2EEnv,
   callCaloriesTool,
@@ -9,7 +7,9 @@ import {
   prepareAndClearCaloriesSpreadsheet,
   requireE2EConfig,
   resolveE2ESpreadsheetContext,
-} from './e2eUtils.js';
+} from '../e2eUtils';
+import { createSheetsClient } from '../../../src/services/google';
+import { getRows } from '../../../src/services/sheets';
 
 const config = requireE2EConfig();
 
@@ -37,13 +37,15 @@ describe('E2E tools: calories meals', () => {
         fat_g: 12,
         notes: 'e2e test meal',
       },
-      622,
+      622
     );
     const logPayload = extractToolJson(logResponse);
 
     expect(typeof logPayload.meal_id).toBe('string');
     expect(logPayload.meal_id).toHaveLength(26); // ULID length
-    expect(logPayload.description).toBe('Grilled chicken breast with rice and salad');
+    expect(logPayload.description).toBe(
+      'Grilled chicken breast with rice and salad'
+    );
     expect(logPayload.calories).toBe(650);
     expect(logPayload.meal_type).toBe('lunch');
     expect(logPayload.date).toBe(today);
@@ -56,13 +58,15 @@ describe('E2E tools: calories meals', () => {
       ctx.spreadsheetId,
       'calories_get_meals',
       { date: today },
-      623,
+      623
     );
     const getMealsPayload = extractToolJson(getMealsResponse);
     expect(getMealsPayload.total_count).toBe(1);
 
     const entries = getMealsPayload.entries as Array<Record<string, unknown>>;
-    expect(entries[0]?.description).toBe('Grilled chicken breast with rice and salad');
+    expect(entries[0]?.description).toBe(
+      'Grilled chicken breast with rice and salad'
+    );
     expect(entries[0]?.meal_type).toBe('lunch');
 
     // Verify sheet directly
@@ -70,7 +74,9 @@ describe('E2E tools: calories meals', () => {
     const rows = await getRows(sheets, ctx.spreadsheetId, MEALS_SHEET_NAME);
     expect(rows).toHaveLength(1);
     expect(rows[0][MEAL_COL.meal_id]).toBe(mealId);
-    expect(rows[0][MEAL_COL.description]).toBe('Grilled chicken breast with rice and salad');
+    expect(rows[0][MEAL_COL.description]).toBe(
+      'Grilled chicken breast with rice and salad'
+    );
     expect(rows[0][MEAL_COL.calories]).toBe('650');
     expect(rows[0][MEAL_COL.meal_type]).toBe('lunch');
     expect(rows[0][MEAL_COL.protein_g]).toBe('45');
@@ -93,7 +99,7 @@ describe('E2E tools: calories meals', () => {
         meal_type: 'breakfast',
         date: today,
       },
-      624,
+      624
     );
 
     const lunchResponse = await callCaloriesTool(
@@ -101,7 +107,7 @@ describe('E2E tools: calories meals', () => {
       ctx.spreadsheetId,
       'calories_get_meals',
       { date: today, meal_type: 'lunch' },
-      625,
+      625
     );
     const lunchPayload = extractToolJson(lunchResponse);
     expect(lunchPayload.total_count).toBe(1);
@@ -113,11 +119,13 @@ describe('E2E tools: calories meals', () => {
       ctx.spreadsheetId,
       'calories_get_meals',
       { date: today, meal_type: 'breakfast' },
-      626,
+      626
     );
     const breakfastPayload = extractToolJson(breakfastResponse);
     expect(breakfastPayload.total_count).toBe(1);
-    const breakfasts = breakfastPayload.entries as Array<Record<string, unknown>>;
+    const breakfasts = breakfastPayload.entries as Array<
+      Record<string, unknown>
+    >;
     expect(breakfasts[0]?.description).toBe('Oatmeal with berries');
   }, 60_000);
 
@@ -138,7 +146,7 @@ describe('E2E tools: calories meals', () => {
         meal_type: 'snack',
         date: today,
       },
-      627,
+      627
     );
     const snackPayload = extractToolJson(snackResponse);
     const snackId = snackPayload.meal_id as string;
@@ -149,7 +157,7 @@ describe('E2E tools: calories meals', () => {
       ctx.spreadsheetId,
       'calories_delete_meal',
       { meal_id: snackId },
-      628,
+      628
     );
     const deletePayload = extractToolJson(deleteResponse);
     expect(deletePayload.deleted).toBe(true);
@@ -161,7 +169,7 @@ describe('E2E tools: calories meals', () => {
       ctx.spreadsheetId,
       'calories_get_meals',
       { date: today, meal_type: 'snack' },
-      629,
+      629
     );
     const getMealsPayload = extractToolJson(getMealsResponse);
     expect(getMealsPayload.total_count).toBe(0);

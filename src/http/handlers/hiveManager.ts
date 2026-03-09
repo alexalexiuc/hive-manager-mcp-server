@@ -1,10 +1,15 @@
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
-import { createMcpServer } from '../../server.js';
-import type { RequestContext } from '../types.js';
+import { createMcpServer } from '../../hiveManager/server';
+import type { RequestContext } from '../types';
 
-export async function handleMcpRequest(context: RequestContext): Promise<Response> {
+export async function handleHiveManagerRequest(
+  context: RequestContext
+): Promise<Response> {
   const { request, env, params } = context;
-  const requestScopedEnv = { ...env, REQUEST_SPREADSHEET_ID: params.spreadsheetId };
+  const requestScopedEnv = {
+    ...env,
+    REQUEST_SPREADSHEET_ID: params.spreadsheetId,
+  };
   const server = createMcpServer(requestScopedEnv);
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,

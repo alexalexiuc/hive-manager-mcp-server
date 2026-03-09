@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { createSheetsClient } from '../../src/services/google.js';
-import { execWithBackoffRetry } from '../../src/shared/retry.js';
-import { MEALS_SHEET_NAME, PROFILE_SHEET_NAME } from '../../src/calories/constants.js';
+import { execWithBackoffRetry } from '../../../src/shared/retry';
+import {
+  MEALS_SHEET_NAME,
+  PROFILE_SHEET_NAME,
+} from '../../../src/calories/constants';
 import {
   buildE2EEnv,
   callCaloriesTool,
@@ -9,7 +11,8 @@ import {
   prepareAndClearCaloriesSpreadsheet,
   requireE2EConfig,
   resolveE2ESpreadsheetContext,
-} from './e2eUtils.js';
+} from '../e2eUtils';
+import { createSheetsClient } from '../../../src/services/google';
 
 const config = requireE2EConfig();
 
@@ -19,7 +22,13 @@ describe('E2E tool: calories_setup', () => {
     await prepareAndClearCaloriesSpreadsheet(config, ctx.spreadsheetId);
     const env = buildE2EEnv(config);
 
-    const response = await callCaloriesTool(env, ctx.spreadsheetId, 'calories_setup', {}, 601);
+    const response = await callCaloriesTool(
+      env,
+      ctx.spreadsheetId,
+      'calories_setup',
+      {},
+      601
+    );
     const payload = extractToolJson(response);
 
     expect(typeof payload.spreadsheet_url).toBe('string');
@@ -43,7 +52,13 @@ describe('E2E tool: calories_setup', () => {
     const env = buildE2EEnv(config);
 
     // Run setup a second time; should succeed without error
-    const response = await callCaloriesTool(env, ctx.spreadsheetId, 'calories_setup', {}, 602);
+    const response = await callCaloriesTool(
+      env,
+      ctx.spreadsheetId,
+      'calories_setup',
+      {},
+      602
+    );
     const payload = extractToolJson(response);
     expect(typeof payload.spreadsheet_url).toBe('string');
   }, 60_000);

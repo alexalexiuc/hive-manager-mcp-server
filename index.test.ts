@@ -1,11 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMcpServer } from './src/server.js';
+import { createMcpServer } from './src/server';
 
-vi.mock('@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js', () => ({
-  WebStandardStreamableHTTPServerTransport: vi.fn().mockImplementation(() => ({
-    handleRequest: vi.fn().mockResolvedValue(new Response('{"ok":true}', { status: 200 })),
-  })),
-}));
+vi.mock(
+  '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js',
+  () => ({
+    WebStandardStreamableHTTPServerTransport: vi
+      .fn()
+      .mockImplementation(() => ({
+        handleRequest: vi
+          .fn()
+          .mockResolvedValue(new Response('{"ok":true}', { status: 200 })),
+      })),
+  })
+);
 
 vi.mock('./src/server.js', () => ({
   createMcpServer: vi.fn().mockReturnValue({
@@ -28,7 +35,11 @@ function makeEnv(overrides: Record<string, string> = {}) {
   };
 }
 
-function makeRequest(path: string, method = 'GET', headers: Record<string, string> = {}): Request {
+function makeRequest(
+  path: string,
+  method = 'GET',
+  headers: Record<string, string> = {}
+): Request {
   return new Request(`https://example.com${path}`, { method, headers });
 }
 
@@ -71,7 +82,7 @@ describe('HTTP routes', () => {
     expect(createMcpServer).toHaveBeenCalledWith(
       expect.objectContaining({
         REQUEST_SPREADSHEET_ID: 'sheet-123',
-      }),
+      })
     );
   });
 

@@ -1,22 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { HIVE_COL, HIVES_SHEET_NAME } from '../../src/constants.js';
-import { createSheetsClient } from '../../src/services/google.js';
-import { getRows } from '../../src/services/sheets.js';
+import { HIVE_COL, HIVES_SHEET_NAME } from '../../../src/hiveManager/constants';
+import { createSheetsClient } from '../../../src/services/google';
+import { getRows } from '../../../src/services/sheets';
 import {
   buildE2EEnv,
   callTool,
   extractToolJson,
-  prepareAndClearSpreadsheet,
+  prepareAndClearHiveManagerSpreadsheet,
   requireE2EConfig,
   resolveE2ESpreadsheetContext,
-} from './e2eUtils.js';
+} from '../e2eUtils';
 
 const config = requireE2EConfig();
 
 describe('E2E tools: hive profile', () => {
   it('creates, updates, and reads hive profile data via MCP tools', async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
-    await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
+    await prepareAndClearHiveManagerSpreadsheet(config, ctx.spreadsheetId);
     const env = buildE2EEnv(config);
 
     await callTool(env, ctx.spreadsheetId, 'apiary_setup', {}, 301);
@@ -31,7 +31,7 @@ describe('E2E tools: hive profile', () => {
         location: 'orchard',
         notes: 'Profile updated via tool',
       },
-      302,
+      302
     );
     const updatePayload = extractToolJson(updateResponse);
     expect(updatePayload.hive).toBe('1');
@@ -43,7 +43,7 @@ describe('E2E tools: hive profile', () => {
       ctx.spreadsheetId,
       'apiary_get_hive_status',
       { hive: '1' },
-      303,
+      303
     );
     const hivePayload = extractToolJson(getResponse);
     expect(hivePayload.hive).toBe('1');
@@ -55,7 +55,7 @@ describe('E2E tools: hive profile', () => {
       ctx.spreadsheetId,
       'apiary_list_hives',
       {},
-      304,
+      304
     );
     const listPayload = extractToolJson(listResponse);
     expect(listPayload.count).toBe(1);

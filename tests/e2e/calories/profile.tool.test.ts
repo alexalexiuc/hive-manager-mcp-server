@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { createSheetsClient } from '../../src/services/google.js';
-import { getRows } from '../../src/services/sheets.js';
-import { PROFILE_SHEET_NAME, PROFILE_COL } from '../../src/calories/constants.js';
+import { createSheetsClient } from '../../../src/services/google';
+import { getRows } from '../../../src/services/sheets';
+import {
+  PROFILE_SHEET_NAME,
+  PROFILE_COL,
+} from '../../../src/calories/constants';
 import {
   buildE2EEnv,
   callCaloriesTool,
@@ -9,7 +12,7 @@ import {
   prepareAndClearCaloriesSpreadsheet,
   requireE2EConfig,
   resolveE2ESpreadsheetContext,
-} from './e2eUtils.js';
+} from '../e2eUtils';
 
 const config = requireE2EConfig();
 
@@ -33,7 +36,7 @@ describe('E2E tools: calories profile', () => {
         sex: 'male',
         activity_level: 'moderately_active',
       },
-      612,
+      612
     );
     const updatePayload = extractToolJson(updateResponse);
 
@@ -46,12 +49,15 @@ describe('E2E tools: calories profile', () => {
     expect(profile.sex).toBe('male');
     expect(profile.activity_level).toBe('moderately_active');
 
-    const calculated = updatePayload.calculated as Record<string, number | null>;
+    const calculated = updatePayload.calculated as Record<
+      string,
+      number | null
+    >;
     // Mifflin-St Jeor male: 10*75 + 6.25*178 - 5*30 + 5 = 750 + 1112.5 - 150 + 5 = 1717.5 → 1718
     expect(typeof calculated.bmr).toBe('number');
     expect(typeof calculated.tdee).toBe('number');
-    expect((calculated.bmr as number)).toBeGreaterThan(1500);
-    expect((calculated.tdee as number)).toBeGreaterThan(calculated.bmr as number);
+    expect(calculated.bmr as number).toBeGreaterThan(1500);
+    expect(calculated.tdee as number).toBeGreaterThan(calculated.bmr as number);
 
     // Verify profile written to sheet
     const sheets = createSheetsClient(config.serviceAccountJson);
@@ -71,7 +77,7 @@ describe('E2E tools: calories profile', () => {
       ctx.spreadsheetId,
       'calories_get_profile',
       {},
-      613,
+      613
     );
     const getPayload = extractToolJson(getResponse);
 
@@ -96,7 +102,7 @@ describe('E2E tools: calories profile', () => {
       ctx.spreadsheetId,
       'calories_update_profile',
       { weight_kg: 73 },
-      614,
+      614
     );
     const updatePayload = extractToolJson(updateResponse);
     const profile = updatePayload.profile as Record<string, string>;
@@ -116,13 +122,16 @@ describe('E2E tools: calories profile', () => {
       ctx.spreadsheetId,
       'calories_update_profile',
       { goal_calories_override: 1800 },
-      615,
+      615
     );
     const updatePayload = extractToolJson(updateResponse);
-    const calculated = updatePayload.calculated as Record<string, number | null>;
+    const calculated = updatePayload.calculated as Record<
+      string,
+      number | null
+    >;
 
     expect(calculated.daily_calories).toBe(1800);
     // TDEE still calculated but daily_calories is the override
-    expect((calculated.tdee as number)).not.toBe(1800);
+    expect(calculated.tdee as number).not.toBe(1800);
   }, 60_000);
 });

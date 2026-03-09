@@ -1,8 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { createSheetsClient } from '../../services/google.js';
-import { ensureCaloriesSpreadsheetStructure } from '../services/sheets.js';
-import { requireSpreadsheetId } from '../../services/spreadsheet.js';
-import type { Env } from '../../types.js';
+import { createSheetsClient } from '../../services/google';
+import { requireSpreadsheetId } from '../../services/spreadsheet';
+import { Env } from '../../types';
+import { ensureCaloriesSpreadsheetStructure } from '../utils';
 
 export function registerCaloriesSetupTool(server: McpServer, env: Env) {
   server.registerTool(
@@ -32,6 +32,6 @@ export function registerCaloriesSetupTool(server: McpServer, env: Env) {
           },
         ],
       };
-    },
+    }
   );
 }

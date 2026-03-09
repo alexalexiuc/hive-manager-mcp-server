@@ -1,14 +1,14 @@
 import { match } from 'path-to-regexp';
-import type { RouteDefinition } from './types.js';
-import { handleHealthRequest } from './handlers/health.js';
-import { handleMcpRequest } from './handlers/mcp.js';
-import { handleCaloriesRequest } from './handlers/calories.js';
+import type { RouteDefinition } from './types';
+import { handleHealthRequest } from './handlers/health';
+import { handleHiveManagerRequest } from './handlers/hiveManager';
+import { handleCaloriesRequest } from './handlers/calories';
 import {
   handleOAuthMetadata,
   handleOAuthAuthorizeGet,
   handleOAuthAuthorizePost,
   handleOAuthToken,
-} from './handlers/oauth.js';
+} from './handlers/oauth';
 
 interface CompiledRoute extends RouteDefinition {
   matcher: ReturnType<typeof match>;
@@ -16,13 +16,48 @@ interface CompiledRoute extends RouteDefinition {
 
 const routes: CompiledRoute[] = (
   [
-    { method: 'GET',  path: '/health',                                   isPublic: true,  handler: handleHealthRequest },
-    { method: 'GET',  path: '/.well-known/oauth-authorization-server',   isPublic: true,  handler: handleOAuthMetadata },
-    { method: 'GET',  path: '/oauth/authorize',                          isPublic: true,  handler: handleOAuthAuthorizeGet },
-    { method: 'POST', path: '/oauth/authorize',                          isPublic: true,  handler: handleOAuthAuthorizePost },
-    { method: 'POST', path: '/oauth/token',                              isPublic: true,  handler: handleOAuthToken },
-    { method: 'POST', path: '/apiary/:spreadsheetId',                    isPublic: false, handler: handleMcpRequest },
-    { method: 'POST', path: '/calories/:spreadsheetId',                  isPublic: false, handler: handleCaloriesRequest },
+    {
+      method: 'GET',
+      path: '/health',
+      isPublic: true,
+      handler: handleHealthRequest,
+    },
+    {
+      method: 'GET',
+      path: '/.well-known/oauth-authorization-server',
+      isPublic: true,
+      handler: handleOAuthMetadata,
+    },
+    {
+      method: 'GET',
+      path: '/oauth/authorize',
+      isPublic: true,
+      handler: handleOAuthAuthorizeGet,
+    },
+    {
+      method: 'POST',
+      path: '/oauth/authorize',
+      isPublic: true,
+      handler: handleOAuthAuthorizePost,
+    },
+    {
+      method: 'POST',
+      path: '/oauth/token',
+      isPublic: true,
+      handler: handleOAuthToken,
+    },
+    {
+      method: 'POST',
+      path: '/apiary/:spreadsheetId',
+      isPublic: false,
+      handler: handleHiveManagerRequest,
+    },
+    {
+      method: 'POST',
+      path: '/calories/:spreadsheetId',
+      isPublic: false,
+      handler: handleCaloriesRequest,
+    },
   ] satisfies RouteDefinition[]
 ).map((route) => ({ ...route, matcher: match(route.path) }));
 

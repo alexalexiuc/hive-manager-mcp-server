@@ -1,6 +1,11 @@
 export const MEALS_SHEET_NAME = 'meals';
 export const PROFILE_SHEET_NAME = 'profile';
 
+export const REQUIRED_CALORIES_SHEETS = [
+  MEALS_SHEET_NAME,
+  PROFILE_SHEET_NAME,
+] as const;
+
 export const MEALS_SHEET_HEADERS = [
   'meal_id',
   'date',
@@ -61,9 +66,9 @@ export const DEFAULT_MEAL_LIMIT = 50;
 export const MAX_MEAL_LIMIT = 500;
 
 export const MEAL_COL = Object.fromEntries(
-  MEALS_SHEET_HEADERS.map((h, i) => [h, i]),
+  MEALS_SHEET_HEADERS.map((h, i) => [h, i])
 ) as { [K in (typeof MEALS_SHEET_HEADERS)[number]]: number };
 
 export const PROFILE_COL = Object.fromEntries(
-  PROFILE_SHEET_HEADERS.map((h, i) => [h, i]),
+  PROFILE_SHEET_HEADERS.map((h, i) => [h, i])
 ) as { [K in (typeof PROFILE_SHEET_HEADERS)[number]]: number };

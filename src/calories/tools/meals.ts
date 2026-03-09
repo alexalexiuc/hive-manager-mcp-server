@@ -1,20 +1,24 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { appendRow, getRows, updateRow } from '../../services/sheets.js';
-import { requireSpreadsheetContext } from '../../services/spreadsheet.js';
+import {
+  appendRow,
+  getRows,
+  toSheetOperationError,
+  updateRow,
+} from '../../services/sheets';
+import { requireSpreadsheetContext } from '../../services/spreadsheet';
 import {
   MEALS_SHEET_NAME,
   MEAL_COL,
   MealType,
   DEFAULT_MEAL_LIMIT,
   MAX_MEAL_LIMIT,
-} from '../constants.js';
-import { toCaloriesSheetOperationError } from '../services/sheets.js';
-import { generateUlid } from '../../shared/ulid.js';
-import { yyyyMmDdDateSchema } from '../../shared/validation.js';
-import { toolResponse } from '../../tools/toolResponse.js';
-import type { Env } from '../../types.js';
-import type { MealEntry } from '../types.js';
+} from '../constants';
+import { yyyyMmDdDateSchema } from '../../shared/validation';
+import type { MealEntry } from '../types';
+import { toolResponse } from '../../hiveManager/tools/toolResponse';
+import { generateUlid } from '../../shared/ulid';
+import { Env } from '../../types';
 
 export function rowToMealEntry(row: string[]): MealEntry {
   return {
@@ -35,20 +39,20 @@ const LogMealSchema = z.object({
   description: z
     .string()
     .describe(
-      'What was eaten — describe the meal as seen in the photo or as told by the user, e.g. "grilled chicken breast with rice and salad"',
+      'What was eaten — describe the meal as seen in the photo or as told by the user, e.g. "grilled chicken breast with rice and salad"'
     ),
   calories: z
     .number()
     .int()
     .positive()
     .describe(
-      'Estimated calorie content of the meal. If analyzing a photo, estimate based on visible portion sizes and typical nutritional values.',
+      'Estimated calorie content of the meal. If analyzing a photo, estimate based on visible portion sizes and typical nutritional values.'
     ),
   meal_type: z
     .nativeEnum(MealType)
     .optional()
     .describe(
-      'Type of meal: "breakfast" | "lunch" | "dinner" | "snack". If not specified, infer from the time of day or context.',
+      'Type of meal: "breakfast" | "lunch" | "dinner" | "snack". If not specified, infer from the time of day or context.'
     ),
   date: yyyyMmDdDateSchema
     .optional()
@@ -71,17 +75,16 @@ const LogMealSchema = z.object({
   notes: z
     .string()
     .optional()
-    .describe('Any additional notes, e.g. "restaurant portion, may be larger than typical"'),
+    .describe(
+      'Any additional notes, e.g. "restaurant portion, may be larger than typical"'
+    ),
 });
 
 const GetMealsSchema = z.object({
   date: yyyyMmDdDateSchema
     .optional()
     .describe('Filter to a specific date (YYYY-MM-DD). Omit for all entries.'),
-  meal_type: z
-    .nativeEnum(MealType)
-    .optional()
-    .describe('Filter by meal type'),
+  meal_type: z.nativeEnum(MealType).optional().describe('Filter by meal type'),
   limit: z
     .number()
     .int()
@@ -89,7 +92,9 @@ const GetMealsSchema = z.object({
     .max(MAX_MEAL_LIMIT)
     .default(DEFAULT_MEAL_LIMIT)
     .optional()
-    .describe(`Max entries to return (default: ${DEFAULT_MEAL_LIMIT}, max: ${MAX_MEAL_LIMIT})`),
+    .describe(
+      `Max entries to return (default: ${DEFAULT_MEAL_LIMIT}, max: ${MAX_MEAL_LIMIT})`
+    ),
   offset: z
     .number()
     .int()
@@ -150,7 +155,7 @@ export function registerMealTools(server: McpServer, env: Env) {
       try {
         await appendRow(sheets, spreadsheetId, MEALS_SHEET_NAME, row);
       } catch (error: unknown) {
-        throw toCaloriesSheetOperationError(error, MEALS_SHEET_NAME);
+        throw toSheetOperationError(error, MEALS_SHEET_NAME);
       }
 
       return toolResponse({
@@ -163,7 +168,7 @@ export function registerMealTools(server: McpServer, env: Env) {
         carbs_g: input.carbs_g ?? null,
         fat_g: input.fat_g ?? null,
       });
-    },
+    }
   );
 
   server.registerTool(
@@ -181,7 +186,7 @@ export function registerMealTools(server: McpServer, env: Env) {
       try {
         rows = await getRows(sheets, spreadsheetId, MEALS_SHEET_NAME);
       } catch (error: unknown) {
-        throw toCaloriesSheetOperationError(error, MEALS_SHEET_NAME);
+        throw toSheetOperationError(error, MEALS_SHEET_NAME);
       }
 
       let filtered = rows;
@@ -191,7 +196,9 @@ export function registerMealTools(server: McpServer, env: Env) {
       }
 
       if (input.meal_type) {
-        filtered = filtered.filter((r) => r[MEAL_COL.meal_type] === input.meal_type);
+        filtered = filtered.filter(
+          (r) => r[MEAL_COL.meal_type] === input.meal_type
+        );
       }
 
       const total_count = filtered.length;
@@ -203,7 +210,7 @@ export function registerMealTools(server: McpServer, env: Env) {
       const next_offset = has_more ? offset + limit : null;
 
       return toolResponse({ entries, total_count, has_more, next_offset });
-    },
+    }
   );
 
   server.registerTool(
@@ -221,10 +228,12 @@ export function registerMealTools(server: McpServer, env: Env) {
       try {
         rows = await getRows(sheets, spreadsheetId, MEALS_SHEET_NAME);
       } catch (error: unknown) {
-        throw toCaloriesSheetOperationError(error, MEALS_SHEET_NAME);
+        throw toSheetOperationError(error, MEALS_SHEET_NAME);
       }
 
-      const rowIndex = rows.findIndex((r) => r[MEAL_COL.meal_id] === input.meal_id);
+      const rowIndex = rows.findIndex(
+        (r) => r[MEAL_COL.meal_id] === input.meal_id
+      );
 
       if (rowIndex === -1) {
         throw new Error(`Meal with id "${input.meal_id}" not found.`);
@@ -235,12 +244,18 @@ export function registerMealTools(server: McpServer, env: Env) {
       const sheetRowIndex = rowIndex + 2; // +1 for header, +1 for 1-based index
 
       try {
-        await updateRow(sheets, spreadsheetId, MEALS_SHEET_NAME, sheetRowIndex, emptyRow);
+        await updateRow(
+          sheets,
+          spreadsheetId,
+          MEALS_SHEET_NAME,
+          sheetRowIndex,
+          emptyRow
+        );
       } catch (error: unknown) {
-        throw toCaloriesSheetOperationError(error, MEALS_SHEET_NAME);
+        throw toSheetOperationError(error, MEALS_SHEET_NAME);
       }
 
       return toolResponse({ deleted: true, meal_id: input.meal_id });
-    },
+    }
   );
 }

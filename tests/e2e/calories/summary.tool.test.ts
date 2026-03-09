@@ -6,7 +6,7 @@ import {
   prepareAndClearCaloriesSpreadsheet,
   requireE2EConfig,
   resolveE2ESpreadsheetContext,
-} from './e2eUtils.js';
+} from '../e2eUtils';
 
 const config = requireE2EConfig();
 
@@ -31,7 +31,7 @@ describe('E2E tools: calories summary', () => {
         activity_level: 'lightly_active',
         goal_calories_override: 1800,
       },
-      632,
+      632
     );
 
     const today = new Date().toISOString().split('T')[0]!;
@@ -40,22 +40,35 @@ describe('E2E tools: calories summary', () => {
       env,
       ctx.spreadsheetId,
       'calories_log_meal',
-      { description: 'Yogurt and granola', calories: 350, meal_type: 'breakfast', date: today },
-      633,
+      {
+        description: 'Yogurt and granola',
+        calories: 350,
+        meal_type: 'breakfast',
+        date: today,
+      },
+      633
     );
     await callCaloriesTool(
       env,
       ctx.spreadsheetId,
       'calories_log_meal',
-      { description: 'Caesar salad with chicken', calories: 500, meal_type: 'lunch', date: today, protein_g: 35, carbs_g: 20, fat_g: 22 },
-      634,
+      {
+        description: 'Caesar salad with chicken',
+        calories: 500,
+        meal_type: 'lunch',
+        date: today,
+        protein_g: 35,
+        carbs_g: 20,
+        fat_g: 22,
+      },
+      634
     );
     await callCaloriesTool(
       env,
       ctx.spreadsheetId,
       'calories_log_meal',
       { description: 'Apple', calories: 80, meal_type: 'snack', date: today },
-      635,
+      635
     );
 
     const summaryResponse = await callCaloriesTool(
@@ -63,7 +76,7 @@ describe('E2E tools: calories summary', () => {
       ctx.spreadsheetId,
       'calories_get_daily_summary',
       { date: today },
-      636,
+      636
     );
     const summary = extractToolJson(summaryResponse);
 
@@ -92,7 +105,7 @@ describe('E2E tools: calories summary', () => {
       ctx.spreadsheetId,
       'calories_get_remaining',
       { date: today, meal_type: 'dinner' },
-      637,
+      637
     );
     const remaining = extractToolJson(remainingResponse);
 
@@ -117,8 +130,13 @@ describe('E2E tools: calories summary', () => {
       env,
       ctx.spreadsheetId,
       'calories_log_meal',
-      { description: 'Large steak dinner with wine and dessert', calories: 1200, meal_type: 'dinner', date: today },
-      638,
+      {
+        description: 'Large steak dinner with wine and dessert',
+        calories: 1200,
+        meal_type: 'dinner',
+        date: today,
+      },
+      638
     );
 
     const remainingResponse = await callCaloriesTool(
@@ -126,7 +144,7 @@ describe('E2E tools: calories summary', () => {
       ctx.spreadsheetId,
       'calories_get_remaining',
       { date: today },
-      639,
+      639
     );
     const remaining = extractToolJson(remainingResponse);
 
@@ -147,7 +165,7 @@ describe('E2E tools: calories summary', () => {
       ctx.spreadsheetId,
       'calories_get_weekly_summary',
       { date: today },
-      640,
+      640
     );
     const weekly = extractToolJson(weeklyResponse);
 
@@ -162,7 +180,7 @@ describe('E2E tools: calories summary', () => {
     const startDay = new Date(start + 'T00:00:00Z').getUTCDay();
     const endDay = new Date(end + 'T00:00:00Z').getUTCDay();
     expect(startDay).toBe(1); // Monday
-    expect(endDay).toBe(0);   // Sunday
+    expect(endDay).toBe(0); // Sunday
 
     // We logged 2130 kcal today — it should appear in the day array
     const days = weekly.days as Array<{ date: string; calories: number }>;

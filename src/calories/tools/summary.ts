@@ -1,15 +1,20 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { getRows } from '../../services/sheets.js';
-import { requireSpreadsheetContext } from '../../services/spreadsheet.js';
-import { MEALS_SHEET_NAME, PROFILE_SHEET_NAME, MEAL_COL, PROFILE_COL, MealType } from '../constants.js';
-import { toCaloriesSheetOperationError } from '../services/sheets.js';
-import { yyyyMmDdDateSchema } from '../../shared/validation.js';
-import { toolResponse } from '../../tools/toolResponse.js';
-import { calculateTDEE } from './profile.js';
-import { rowToMealEntry } from './meals.js';
-import type { Env } from '../../types.js';
-import type { BodyProfile } from '../types.js';
+import { getRows, toSheetOperationError } from '../../services/sheets';
+import { requireSpreadsheetContext } from '../../services/spreadsheet';
+import {
+  MEALS_SHEET_NAME,
+  PROFILE_SHEET_NAME,
+  MEAL_COL,
+  PROFILE_COL,
+  MealType,
+} from '../constants';
+import { yyyyMmDdDateSchema } from '../../shared/validation';
+import { calculateTDEE } from './profile';
+import { rowToMealEntry } from './meals';
+import type { BodyProfile } from '../types';
+import { toolResponse } from '../../hiveManager/tools/toolResponse';
+import { Env } from '../../types';
 
 function rowToProfile(row: string[]): BodyProfile {
   return {
@@ -53,9 +58,16 @@ interface DayTotals {
 
 function sumMealsForDate(rows: string[][], date: string): DayTotals {
   const dayRows = rows.filter(
-    (r) => r[MEAL_COL.date] === date && r[MEAL_COL.meal_id] !== '',
+    (r) => r[MEAL_COL.date] === date && r[MEAL_COL.meal_id] !== ''
   );
-  const totals: DayTotals = { date, calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, meal_count: dayRows.length };
+  const totals: DayTotals = {
+    date,
+    calories: 0,
+    protein_g: 0,
+    carbs_g: 0,
+    fat_g: 0,
+    meal_count: dayRows.length,
+  };
   for (const row of dayRows) {
     totals.calories += Number(row[MEAL_COL.calories]) || 0;
     totals.protein_g += Number(row[MEAL_COL.protein_g]) || 0;
@@ -75,7 +87,7 @@ const GetWeeklySummarySchema = z.object({
   date: yyyyMmDdDateSchema
     .optional()
     .describe(
-      'Any date within the target week (YYYY-MM-DD). Defaults to today. Week runs Monday–Sunday.',
+      'Any date within the target week (YYYY-MM-DD). Defaults to today. Week runs Monday–Sunday.'
     ),
 });
 
@@ -87,7 +99,7 @@ const GetRemainingSchema = z.object({
     .nativeEnum(MealType)
     .optional()
     .describe(
-      'If provided, also shows typical calorie budget for that meal type based on common distribution (breakfast 25%, lunch 35%, dinner 30%, snacks 10%).',
+      'If provided, also shows typical calorie budget for that meal type based on common distribution (breakfast 25%, lunch 35%, dinner 30%, snacks 10%).'
     ),
 });
 
@@ -98,8 +110,8 @@ type GetRemainingInput = z.infer<typeof GetRemainingSchema>;
 const MEAL_TYPE_FRACTIONS: Record<MealType, number> = {
   [MealType.BREAKFAST]: 0.25,
   [MealType.LUNCH]: 0.35,
-  [MealType.DINNER]: 0.30,
-  [MealType.SNACK]: 0.10,
+  [MealType.DINNER]: 0.3,
+  [MealType.SNACK]: 0.1,
 };
 
 export function registerSummaryTools(server: McpServer, env: Env) {
@@ -126,12 +138,13 @@ export function registerSummaryTools(server: McpServer, env: Env) {
           getRows(sheets, spreadsheetId, PROFILE_SHEET_NAME),
         ]);
       } catch (error: unknown) {
-        throw toCaloriesSheetOperationError(error, MEALS_SHEET_NAME);
+        throw toSheetOperationError(error, MEALS_SHEET_NAME);
       }
 
-      const profile = profileRows.length > 0 && profileRows[0]
-        ? rowToProfile(profileRows[0])
-        : {};
+      const profile =
+        profileRows.length > 0 && profileRows[0]
+          ? rowToProfile(profileRows[0])
+          : {};
       const { daily_calories } = calculateTDEE(profile);
 
       const dayMeals = mealRows
@@ -139,7 +152,8 @@ export function registerSummaryTools(server: McpServer, env: Env) {
         .map(rowToMealEntry);
 
       const totals = sumMealsForDate(mealRows, date);
-      const remaining = daily_calories !== null ? daily_calories - totals.calories : null;
+      const remaining =
+        daily_calories !== null ? daily_calories - totals.calories : null;
 
       return toolResponse({
         date,
@@ -153,9 +167,10 @@ export function registerSummaryTools(server: McpServer, env: Env) {
         },
         daily_target: daily_calories,
         remaining_calories: remaining,
-        goal_met: daily_calories !== null ? totals.calories >= daily_calories : null,
+        goal_met:
+          daily_calories !== null ? totals.calories >= daily_calories : null,
       });
-    },
+    }
   );
 
   server.registerTool(
@@ -182,12 +197,13 @@ export function registerSummaryTools(server: McpServer, env: Env) {
           getRows(sheets, spreadsheetId, PROFILE_SHEET_NAME),
         ]);
       } catch (error: unknown) {
-        throw toCaloriesSheetOperationError(error, MEALS_SHEET_NAME);
+        throw toSheetOperationError(error, MEALS_SHEET_NAME);
       }
 
-      const profile = profileRows.length > 0 && profileRows[0]
-        ? rowToProfile(profileRows[0])
-        : {};
+      const profile =
+        profileRows.length > 0 && profileRows[0]
+          ? rowToProfile(profileRows[0])
+          : {};
       const { daily_calories } = calculateTDEE(profile);
 
       // Build day-by-day summary for Mon–Sun
@@ -203,7 +219,8 @@ export function registerSummaryTools(server: McpServer, env: Env) {
 
       const totalCalories = days.reduce((s, d) => s + d.calories, 0);
       const daysWithData = days.filter((d) => d.meal_count > 0).length;
-      const weeklyAverage = daysWithData > 0 ? Math.round(totalCalories / daysWithData) : 0;
+      const weeklyAverage =
+        daysWithData > 0 ? Math.round(totalCalories / daysWithData) : 0;
       const weeklyTarget = daily_calories !== null ? daily_calories * 7 : null;
 
       return toolResponse({
@@ -213,9 +230,10 @@ export function registerSummaryTools(server: McpServer, env: Env) {
         weekly_average_calories: weeklyAverage,
         daily_target: daily_calories,
         weekly_target: weeklyTarget,
-        weekly_remaining: weeklyTarget !== null ? weeklyTarget - totalCalories : null,
+        weekly_remaining:
+          weeklyTarget !== null ? weeklyTarget - totalCalories : null,
       });
-    },
+    }
   );
 
   server.registerTool(
@@ -241,21 +259,25 @@ export function registerSummaryTools(server: McpServer, env: Env) {
           getRows(sheets, spreadsheetId, PROFILE_SHEET_NAME),
         ]);
       } catch (error: unknown) {
-        throw toCaloriesSheetOperationError(error, MEALS_SHEET_NAME);
+        throw toSheetOperationError(error, MEALS_SHEET_NAME);
       }
 
-      const profile = profileRows.length > 0 && profileRows[0]
-        ? rowToProfile(profileRows[0])
-        : {};
+      const profile =
+        profileRows.length > 0 && profileRows[0]
+          ? rowToProfile(profileRows[0])
+          : {};
       const { daily_calories } = calculateTDEE(profile);
 
       const totals = sumMealsForDate(mealRows, date);
-      const remaining = daily_calories !== null ? daily_calories - totals.calories : null;
+      const remaining =
+        daily_calories !== null ? daily_calories - totals.calories : null;
 
       // Per-meal budget hint
       let meal_budget: number | null = null;
       if (input.meal_type && daily_calories !== null) {
-        meal_budget = Math.round(daily_calories * MEAL_TYPE_FRACTIONS[input.meal_type as MealType]);
+        meal_budget = Math.round(
+          daily_calories * MEAL_TYPE_FRACTIONS[input.meal_type as MealType]
+        );
       }
 
       return toolResponse({
@@ -267,6 +289,6 @@ export function registerSummaryTools(server: McpServer, env: Env) {
         meal_type: input.meal_type ?? null,
         suggested_meal_budget: meal_budget,
       });
-    },
+    }
   );
 }

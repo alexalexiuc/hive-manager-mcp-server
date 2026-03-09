@@ -4,24 +4,24 @@ import {
   RELOCATIONS_SHEET_NAME,
   HIVE_COL,
   HIVES_SHEET_NAME,
-} from '../../src/constants.js';
-import { createSheetsClient } from '../../src/services/google.js';
-import { getRows } from '../../src/services/sheets.js';
+} from '../../../src/hiveManager/constants';
+import { createSheetsClient } from '../../../src/services/google';
+import { getRows } from '../../../src/services/sheets';
 import {
   buildE2EEnv,
   callTool,
   extractToolJson,
-  prepareAndClearSpreadsheet,
+  prepareAndClearHiveManagerSpreadsheet,
   requireE2EConfig,
   resolveE2ESpreadsheetContext,
-} from './e2eUtils.js';
+} from '../e2eUtils';
 
 const config = requireE2EConfig();
 
 describe('E2E tools: relocations', () => {
   it('logs relocation, updates hive location, and retrieves history', async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
-    await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
+    await prepareAndClearHiveManagerSpreadsheet(config, ctx.spreadsheetId);
     const env = buildE2EEnv(config);
 
     await callTool(env, ctx.spreadsheetId, 'apiary_setup', {}, 701);
@@ -32,14 +32,14 @@ describe('E2E tools: relocations', () => {
       ctx.spreadsheetId,
       'apiary_update_hive_profile',
       { hive: '1', location: 'home' },
-      702,
+      702
     );
     await callTool(
       env,
       ctx.spreadsheetId,
       'apiary_update_hive_profile',
       { hive: '2', location: 'home' },
-      703,
+      703
     );
 
     const logResponse = await callTool(
@@ -51,7 +51,7 @@ describe('E2E tools: relocations', () => {
         location: 'North Apiary',
         notes: 'Season move',
       },
-      704,
+      704
     );
     const logPayload = extractToolJson(logResponse);
     expect(logPayload.hives).toBe('1,2');
@@ -62,13 +62,17 @@ describe('E2E tools: relocations', () => {
       ctx.spreadsheetId,
       'apiary_get_relocation_history',
       { hive: '1', limit: 10 },
-      705,
+      705
     );
     const listPayload = extractToolJson(listResponse);
     expect(listPayload.count).toBe(1);
 
     const sheets = createSheetsClient(config.serviceAccountJson!);
-    const rows = await getRows(sheets, ctx.spreadsheetId, RELOCATIONS_SHEET_NAME);
+    const rows = await getRows(
+      sheets,
+      ctx.spreadsheetId,
+      RELOCATIONS_SHEET_NAME
+    );
     expect(rows).toHaveLength(1);
     expect(rows[0][RELOCATION_COL.hives]).toBe('1,2');
     expect(rows[0][RELOCATION_COL.location]).toBe('North Apiary');
@@ -84,7 +88,7 @@ describe('E2E tools: relocations', () => {
       ctx.spreadsheetId,
       'apiary_get_hive_status',
       { hive: '1' },
-      706,
+      706
     );
     const statusPayload = extractToolJson(statusResponse);
     expect(statusPayload.location).toBe('North Apiary');

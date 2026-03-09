@@ -1,23 +1,23 @@
 import 'dotenv/config';
-import worker from '../../src/index.js';
+import worker from '../../src/index';
+import {
+  MEALS_SHEET_NAME,
+  PROFILE_SHEET_NAME,
+} from '../../src/calories/constants';
+import {
+  execWithBackoffRetry,
+  isRetryableGoogleQuotaError,
+} from '../../src/shared/retry';
+import { createSheetsClient } from '../../src/services/google';
+import { signToken } from '../../src/http/token';
+import type { Env } from '../../src/types';
 import {
   HIVES_SHEET_NAME,
   LOGS_SHEET_NAME,
   HARVESTS_SHEET_NAME,
   TODOS_SHEET_NAME,
   RELOCATIONS_SHEET_NAME,
-} from '../../src/constants.js';
-import {
-  MEALS_SHEET_NAME,
-  PROFILE_SHEET_NAME,
-} from '../../src/calories/constants.js';
-import {
-  execWithBackoffRetry,
-  isRetryableGoogleQuotaError,
-} from '../../src/shared/retry.js';
-import { createSheetsClient } from '../../src/services/google.js';
-import { signToken } from '../../src/http/token.js';
-import type { Env } from '../../src/types.js';
+} from '../../src/hiveManager/constants';
 
 type E2EConfig = {
   serviceAccountJson?: string;
@@ -66,7 +66,7 @@ export function requireE2EConfig(): RequiredE2EConfig {
 
   if (missing.length > 0) {
     throw new Error(
-      `Missing required e2e environment variables: ${missing.join(', ')}`,
+      `Missing required e2e environment variables: ${missing.join(', ')}`
     );
   }
 
@@ -83,7 +83,7 @@ export type E2ESpreadsheetContext = {
 };
 
 export async function resolveE2ESpreadsheetContext(
-  config: E2EConfig,
+  config: E2EConfig
 ): Promise<E2ESpreadsheetContext> {
   if (!config.spreadsheetId) {
     throw new Error('E2E_SPREADSHEET_ID is required for e2e tests.');
@@ -92,9 +92,9 @@ export async function resolveE2ESpreadsheetContext(
   return { spreadsheetId: config.spreadsheetId };
 }
 
-export async function prepareAndClearSpreadsheet(
+export async function prepareAndClearHiveManagerSpreadsheet(
   config: E2EConfig,
-  spreadsheetId: string,
+  spreadsheetId: string
 ): Promise<void> {
   if (!config.serviceAccountJson) {
     throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is required for e2e tests.');
@@ -107,7 +107,7 @@ export async function prepareAndClearSpreadsheet(
   const existingTitles = new Set(
     (spreadsheet.data.sheets ?? [])
       .map((sheet) => sheet.properties?.title)
-      .filter((title): title is string => Boolean(title)),
+      .filter((title): title is string => Boolean(title))
   );
   const ranges = [
     HIVES_SHEET_NAME,
@@ -135,7 +135,7 @@ export async function prepareAndClearSpreadsheet(
 
 export async function prepareAndClearCaloriesSpreadsheet(
   config: E2EConfig,
-  spreadsheetId: string,
+  spreadsheetId: string
 ): Promise<void> {
   if (!config.serviceAccountJson) {
     throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is required for e2e tests.');
@@ -148,7 +148,7 @@ export async function prepareAndClearCaloriesSpreadsheet(
   const existingTitles = new Set(
     (spreadsheet.data.sheets ?? [])
       .map((sheet) => sheet.properties?.title)
-      .filter((title): title is string => Boolean(title)),
+      .filter((title): title is string => Boolean(title))
   );
   const ranges = [MEALS_SHEET_NAME, PROFILE_SHEET_NAME]
     .filter((sheetName) => existingTitles.has(sheetName))
@@ -190,28 +190,31 @@ export async function callMcpMethod(
   method: string,
   params: Record<string, unknown>,
   id = 1,
-  endpoint = 'apiary',
+  endpoint = 'apiary'
 ): Promise<Record<string, unknown>> {
   const accessToken = await signToken(
     { client_id: env.OAUTH_CLIENT_ID, exp: Date.now() + 3600 * 1000 },
-    env.OAUTH_CLIENT_SECRET,
+    env.OAUTH_CLIENT_SECRET
   );
 
   return execWithBackoffRetry(async () => {
-    const request = new Request(`https://example.com/${endpoint}/${spreadsheetId}`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        accept: 'application/json, text/event-stream',
-        authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id,
-        method,
-        params,
-      }),
-    });
+    const request = new Request(
+      `https://example.com/${endpoint}/${spreadsheetId}`,
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          accept: 'application/json, text/event-stream',
+          authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id,
+          method,
+          params,
+        }),
+      }
+    );
 
     const response = await worker.fetch(request, env);
     const text = await response.text();
@@ -250,7 +253,7 @@ export async function callTool(
   toolName: string,
   args: Record<string, unknown> = {},
   id = 1,
-  endpoint = 'apiary',
+  endpoint = 'apiary'
 ): Promise<Record<string, unknown>> {
   return callMcpMethod(
     env,
@@ -261,7 +264,7 @@ export async function callTool(
       arguments: args,
     },
     id,
-    endpoint,
+    endpoint
   );
 }
 
@@ -270,13 +273,13 @@ export async function callCaloriesTool(
   spreadsheetId: string,
   toolName: string,
   args: Record<string, unknown> = {},
-  id = 1,
+  id = 1
 ): Promise<Record<string, unknown>> {
   return callTool(env, spreadsheetId, toolName, args, id, 'calories');
 }
 
 export function extractToolJson(
-  rpcResponse: Record<string, unknown>,
+  rpcResponse: Record<string, unknown>
 ): Record<string, unknown> {
   const result = rpcResponse.result as Record<string, unknown> | undefined;
   const content = result?.content as Array<Record<string, unknown>> | undefined;
@@ -284,7 +287,7 @@ export function extractToolJson(
 
   if (typeof text !== 'string') {
     throw new Error(
-      `Unexpected tool response payload: ${JSON.stringify(rpcResponse)}`,
+      `Unexpected tool response payload: ${JSON.stringify(rpcResponse)}`
     );
   }
 

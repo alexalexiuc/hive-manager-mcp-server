@@ -1,9 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerCaloriesSetupTool } from './tools/setup.js';
-import { registerProfileTools } from './tools/profile.js';
-import { registerMealTools } from './tools/meals.js';
-import { registerSummaryTools } from './tools/summary.js';
-import type { Env } from '../types.js';
+import { registerCaloriesSetupTool } from './tools/setup';
+import { registerProfileTools } from './tools/profile';
+import { registerMealTools } from './tools/meals';
+import { registerSummaryTools } from './tools/summary';
+import { Env } from '../types';
 
 export function createCaloriesServer(env: Env): McpServer {
   const server = new McpServer({

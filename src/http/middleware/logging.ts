@@ -1,5 +1,5 @@
-import { internalErrorResponse } from '../responses.js';
-import type { WorkerHandler } from '../types.js';
+import { internalErrorResponse } from '../responses';
+import type { WorkerHandler } from '../types';
 
 export function createRequestId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

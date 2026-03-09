@@ -1,22 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { TODOS_SHEET_NAME, TODO_COL } from '../../src/constants.js';
-import { createSheetsClient } from '../../src/services/google.js';
-import { getRows } from '../../src/services/sheets.js';
+import { createSheetsClient } from '../../../src/services/google';
+import { getRows } from '../../../src/services/sheets';
 import {
   buildE2EEnv,
   callTool,
   extractToolJson,
-  prepareAndClearSpreadsheet,
+  prepareAndClearHiveManagerSpreadsheet,
   requireE2EConfig,
   resolveE2ESpreadsheetContext,
-} from './e2eUtils.js';
+} from '../e2eUtils';
+import { TODO_COL, TODOS_SHEET_NAME } from '../../../src/hiveManager/constants';
 
 const config = requireE2EConfig();
 
 describe('E2E tools: todos', () => {
   it('adds, lists, and completes todos via MCP tools', async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
-    await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
+    await prepareAndClearHiveManagerSpreadsheet(config, ctx.spreadsheetId);
     const env = buildE2EEnv(config);
 
     await callTool(env, ctx.spreadsheetId, 'apiary_setup', {}, 501);
@@ -30,7 +30,7 @@ describe('E2E tools: todos', () => {
         priority: 'medium',
         notes: 'Created by e2e',
       },
-      502,
+      502
     );
     const addPayload = extractToolJson(addResponse);
     expect(typeof addPayload.todo_id).toBe('string');
@@ -43,7 +43,7 @@ describe('E2E tools: todos', () => {
       ctx.spreadsheetId,
       'apiary_list_todos',
       {},
-      503,
+      503
     );
     const listPayload = extractToolJson(listResponse);
     expect(listPayload.count).toBe(1);
@@ -57,7 +57,7 @@ describe('E2E tools: todos', () => {
       ctx.spreadsheetId,
       'apiary_complete_todo',
       { todo_id: todoId },
-      504,
+      504
     );
     const markDonePayload = extractToolJson(markDoneResponse);
     expect(markDonePayload.todo_id).toBe(todoId);
@@ -68,10 +68,12 @@ describe('E2E tools: todos', () => {
       ctx.spreadsheetId,
       'apiary_list_todos',
       { status: 'done' },
-      505,
+      505
     );
     const updatedListPayload = extractToolJson(updatedListResponse);
-    const updatedTodos = updatedListPayload.todos as Array<Record<string, string>>;
+    const updatedTodos = updatedListPayload.todos as Array<
+      Record<string, string>
+    >;
     expect(updatedTodos[0]?.status).toBe('done');
 
     const sheets = createSheetsClient(config.serviceAccountJson!);

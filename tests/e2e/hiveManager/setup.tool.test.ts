@@ -5,23 +5,23 @@ import {
   HARVESTS_SHEET_NAME,
   TODOS_SHEET_NAME,
   RELOCATIONS_SHEET_NAME,
-} from '../../src/constants.js';
-import { createSheetsClient } from '../../src/services/google.js';
+} from '../../../src/hiveManager/constants';
+import { createSheetsClient } from '../../../src/services/google';
 import {
   buildE2EEnv,
   callTool,
   extractToolJson,
-  prepareAndClearSpreadsheet,
+  prepareAndClearHiveManagerSpreadsheet,
   requireE2EConfig,
   resolveE2ESpreadsheetContext,
-} from './e2eUtils.js';
+} from '../e2eUtils';
 
 const config = requireE2EConfig();
 
 describe('E2E tool: apiary_setup', () => {
   it('returns spreadsheet url and ensures required sheets exist', async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
-    await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
+    await prepareAndClearHiveManagerSpreadsheet(config, ctx.spreadsheetId);
     const env = buildE2EEnv(config);
 
     const rpcResponse = await callTool(
@@ -29,7 +29,7 @@ describe('E2E tool: apiary_setup', () => {
       ctx.spreadsheetId,
       'apiary_setup',
       {},
-      101,
+      101
     );
     const payload = extractToolJson(rpcResponse);
 

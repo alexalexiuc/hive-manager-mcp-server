@@ -1,18 +1,22 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { getRows, appendRow, updateRow } from '../../services/sheets.js';
-import { requireSpreadsheetContext } from '../../services/spreadsheet.js';
+import {
+  getRows,
+  appendRow,
+  updateRow,
+  toSheetOperationError,
+} from '../../services/sheets';
+import { requireSpreadsheetContext } from '../../services/spreadsheet';
 import {
   PROFILE_SHEET_NAME,
   PROFILE_COL,
   ActivityLevel,
   Sex,
   ACTIVITY_MULTIPLIERS,
-} from '../constants.js';
-import { toCaloriesSheetOperationError } from '../services/sheets.js';
-import { toolResponse } from '../../tools/toolResponse.js';
-import type { Env } from '../../types.js';
-import type { BodyProfile } from '../types.js';
+} from '../constants';
+import type { BodyProfile } from '../types';
+import { Env } from '../../types';
+import { toolResponse } from '../../hiveManager/tools/toolResponse';
 
 function rowToProfile(row: string[]): BodyProfile {
   return {
@@ -71,7 +75,9 @@ export function calculateTDEE(profile: BodyProfile): {
     bmr = 10 * weight + 6.25 * height - 5 * age - 161;
   }
 
-  const multiplier = ACTIVITY_MULTIPLIERS[activity] ?? ACTIVITY_MULTIPLIERS[ActivityLevel.SEDENTARY];
+  const multiplier =
+    ACTIVITY_MULTIPLIERS[activity] ??
+    ACTIVITY_MULTIPLIERS[ActivityLevel.SEDENTARY];
   const tdee = Math.round(bmr * multiplier);
   bmr = Math.round(bmr);
 
@@ -95,7 +101,7 @@ const UpdateProfileSchema = z.object({
     .nativeEnum(ActivityLevel)
     .optional()
     .describe(
-      'Activity level for TDEE: "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extra_active"',
+      'Activity level for TDEE: "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extra_active"'
     ),
   goal_calories_override: z
     .number()
@@ -103,16 +109,29 @@ const UpdateProfileSchema = z.object({
     .positive()
     .optional()
     .describe(
-      'Manual daily calorie target override. If not set, calculated TDEE is used.',
+      'Manual daily calorie target override. If not set, calculated TDEE is used.'
     ),
-  neck_cm: z.number().positive().optional().describe('Neck circumference in cm'),
-  waist_cm: z.number().positive().optional().describe('Waist circumference in cm'),
+  neck_cm: z
+    .number()
+    .positive()
+    .optional()
+    .describe('Neck circumference in cm'),
+  waist_cm: z
+    .number()
+    .positive()
+    .optional()
+    .describe('Waist circumference in cm'),
   hips_cm: z
     .number()
     .positive()
     .optional()
-    .describe('Hips circumference in cm (relevant for female body fat estimation)'),
-  notes: z.string().optional().describe('Additional notes about your health goals'),
+    .describe(
+      'Hips circumference in cm (relevant for female body fat estimation)'
+    ),
+  notes: z
+    .string()
+    .optional()
+    .describe('Additional notes about your health goals'),
 });
 
 type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
@@ -137,24 +156,42 @@ export function registerProfileTools(server: McpServer, env: Env) {
           existing = rowToProfile(rows[0]);
         }
       } catch (error: unknown) {
-        throw toCaloriesSheetOperationError(error, PROFILE_SHEET_NAME);
+        throw toSheetOperationError(error, PROFILE_SHEET_NAME);
       }
 
       const updated: BodyProfile = {
         ...existing,
         name: input.name !== undefined ? input.name : existing.name,
         age: input.age !== undefined ? String(input.age) : existing.age,
-        height_cm: input.height_cm !== undefined ? String(input.height_cm) : existing.height_cm,
-        weight_kg: input.weight_kg !== undefined ? String(input.weight_kg) : existing.weight_kg,
+        height_cm:
+          input.height_cm !== undefined
+            ? String(input.height_cm)
+            : existing.height_cm,
+        weight_kg:
+          input.weight_kg !== undefined
+            ? String(input.weight_kg)
+            : existing.weight_kg,
         sex: input.sex !== undefined ? input.sex : existing.sex,
-        activity_level: input.activity_level !== undefined ? input.activity_level : existing.activity_level,
+        activity_level:
+          input.activity_level !== undefined
+            ? input.activity_level
+            : existing.activity_level,
         goal_calories_override:
           input.goal_calories_override !== undefined
             ? String(input.goal_calories_override)
             : existing.goal_calories_override,
-        neck_cm: input.neck_cm !== undefined ? String(input.neck_cm) : existing.neck_cm,
-        waist_cm: input.waist_cm !== undefined ? String(input.waist_cm) : existing.waist_cm,
-        hips_cm: input.hips_cm !== undefined ? String(input.hips_cm) : existing.hips_cm,
+        neck_cm:
+          input.neck_cm !== undefined
+            ? String(input.neck_cm)
+            : existing.neck_cm,
+        waist_cm:
+          input.waist_cm !== undefined
+            ? String(input.waist_cm)
+            : existing.waist_cm,
+        hips_cm:
+          input.hips_cm !== undefined
+            ? String(input.hips_cm)
+            : existing.hips_cm,
         notes: input.notes !== undefined ? input.notes : existing.notes,
         updated_at: new Date().toISOString(),
       };
@@ -162,12 +199,23 @@ export function registerProfileTools(server: McpServer, env: Env) {
       try {
         const rows = await getRows(sheets, spreadsheetId, PROFILE_SHEET_NAME);
         if (rows.length > 0) {
-          await updateRow(sheets, spreadsheetId, PROFILE_SHEET_NAME, 2, profileToRow(updated));
+          await updateRow(
+            sheets,
+            spreadsheetId,
+            PROFILE_SHEET_NAME,
+            2,
+            profileToRow(updated)
+          );
         } else {
-          await appendRow(sheets, spreadsheetId, PROFILE_SHEET_NAME, profileToRow(updated));
+          await appendRow(
+            sheets,
+            spreadsheetId,
+            PROFILE_SHEET_NAME,
+            profileToRow(updated)
+          );
         }
       } catch (error: unknown) {
-        throw toCaloriesSheetOperationError(error, PROFILE_SHEET_NAME);
+        throw toSheetOperationError(error, PROFILE_SHEET_NAME);
       }
 
       const { bmr, tdee, daily_calories } = calculateTDEE(updated);
@@ -176,7 +224,7 @@ export function registerProfileTools(server: McpServer, env: Env) {
         profile: updated,
         calculated: { bmr, tdee, daily_calories },
       });
-    },
+    }
   );
 
   server.registerTool(
@@ -197,7 +245,7 @@ export function registerProfileTools(server: McpServer, env: Env) {
           profile = rowToProfile(rows[0]);
         }
       } catch (error: unknown) {
-        throw toCaloriesSheetOperationError(error, PROFILE_SHEET_NAME);
+        throw toSheetOperationError(error, PROFILE_SHEET_NAME);
       }
 
       const { bmr, tdee, daily_calories } = calculateTDEE(profile);
@@ -221,6 +269,6 @@ export function registerProfileTools(server: McpServer, env: Env) {
             : null,
         },
       });
-    },
+    }
   );
 }
