@@ -1,6 +1,6 @@
 import { describe, it } from 'vitest';
 
-describe('hive_get_todos', () => {
+describe('hive_list_todos', () => {
   it.todo('returns all todos from apiary_todos sheet as JSON');
   it.todo('returns empty list when no todos exist');
   it.todo('throws error when x-spreadsheet-id header missing');

@@ -3,7 +3,10 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { getRows, appendRow, updateRow } from '../services/sheets.js';
 import { requireSpreadsheetContext } from '../services/spreadsheet.js';
 import { APIARY_TODOS_SHEET_NAME, TODO_COL } from '../constants.js';
-import { isoTimestampSchema, yyyyMmDdDateSchema } from '../shared/validation.js';
+import {
+  isoTimestampSchema,
+  yyyyMmDdDateSchema,
+} from '../shared/validation.js';
 import { toolResponse } from './toolResponse.js';
 import type { Env } from '../types.js';
 
@@ -22,7 +25,7 @@ const AddTodoSchema = z.object({
 
 const UpdateTodoSchemaBase = z.object({
   created_at: isoTimestampSchema.describe(
-    'created_at value from hive_get_todos for the todo to update'
+    'created_at value from hive_list_todos for the todo to update'
   ),
   todo: z.string().optional().describe('Updated task description'),
   priority: TodoPrioritySchema.optional().describe('Updated task priority'),
@@ -34,20 +37,20 @@ const UpdateTodoSchemaBase = z.object({
 });
 
 const UpdateTodoSchema = UpdateTodoSchemaBase.refine(
-    (input) =>
-      input.todo !== undefined ||
-      input.priority !== undefined ||
-      input.status !== undefined ||
-      input.due_date !== undefined ||
-      input.notes !== undefined,
-    {
-      message: 'Provide at least one field to update.',
-    }
-  );
+  (input) =>
+    input.todo !== undefined ||
+    input.priority !== undefined ||
+    input.status !== undefined ||
+    input.due_date !== undefined ||
+    input.notes !== undefined,
+  {
+    message: 'Provide at least one field to update.',
+  }
+);
 
 const MarkTodoDoneSchema = z.object({
   created_at: isoTimestampSchema.describe(
-    'created_at value from hive_get_todos for the todo to mark as done'
+    'created_at value from hive_list_todos for the todo to mark as done'
   ),
   notes: z.string().optional().describe('Optional replacement notes'),
 });
@@ -83,14 +86,18 @@ function findTodoRowIndexByCreatedAt(
 
 export function registerTodoTools(server: McpServer, env: Env) {
   server.registerTool(
-    'hive_get_todos',
+    'hive_list_todos',
     {
       description: 'List all general apiary todos from the apiary_todos sheet.',
     },
     async () => {
       const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
 
-      const rows = await getRows(sheets, spreadsheetId, APIARY_TODOS_SHEET_NAME);
+      const rows = await getRows(
+        sheets,
+        spreadsheetId,
+        APIARY_TODOS_SHEET_NAME
+      );
       const todos = rows.map((row) => rowToTodo(row));
 
       return toolResponse({ count: todos.length, todos });
@@ -100,7 +107,8 @@ export function registerTodoTools(server: McpServer, env: Env) {
   server.registerTool(
     'hive_add_todo',
     {
-      description: 'Add a new general apiary todo entry to the apiary_todos sheet.',
+      description:
+        'Add a new general apiary todo entry to the apiary_todos sheet.',
       inputSchema: AddTodoSchema.shape,
     },
     async (input: AddTodoInput) => {
@@ -119,7 +127,10 @@ export function registerTodoTools(server: McpServer, env: Env) {
 
       await appendRow(sheets, spreadsheetId, APIARY_TODOS_SHEET_NAME, row);
 
-      return toolResponse({ success: true, message: 'Todo added successfully.' });
+      return toolResponse({
+        success: true,
+        message: 'Todo added successfully.',
+      });
     }
   );
 
@@ -143,8 +154,15 @@ export function registerTodoTools(server: McpServer, env: Env) {
       }
       const parsedInput = UpdateTodoSchema.parse(input);
       const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
-      const rows = await getRows(sheets, spreadsheetId, APIARY_TODOS_SHEET_NAME);
-      const rowIndex = findTodoRowIndexByCreatedAt(rows, parsedInput.created_at);
+      const rows = await getRows(
+        sheets,
+        spreadsheetId,
+        APIARY_TODOS_SHEET_NAME
+      );
+      const rowIndex = findTodoRowIndexByCreatedAt(
+        rows,
+        parsedInput.created_at
+      );
 
       if (rowIndex === null) {
         throw new Error(
@@ -164,7 +182,13 @@ export function registerTodoTools(server: McpServer, env: Env) {
         now,
       ];
 
-      await updateRow(sheets, spreadsheetId, APIARY_TODOS_SHEET_NAME, rowIndex, updatedRow);
+      await updateRow(
+        sheets,
+        spreadsheetId,
+        APIARY_TODOS_SHEET_NAME,
+        rowIndex,
+        updatedRow
+      );
 
       return toolResponse({
         success: true,
@@ -183,7 +207,11 @@ export function registerTodoTools(server: McpServer, env: Env) {
     },
     async (input: MarkTodoDoneInput) => {
       const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
-      const rows = await getRows(sheets, spreadsheetId, APIARY_TODOS_SHEET_NAME);
+      const rows = await getRows(
+        sheets,
+        spreadsheetId,
+        APIARY_TODOS_SHEET_NAME
+      );
       const rowIndex = findTodoRowIndexByCreatedAt(rows, input.created_at);
 
       if (rowIndex === null) {
@@ -202,7 +230,13 @@ export function registerTodoTools(server: McpServer, env: Env) {
         now,
       ];
 
-      await updateRow(sheets, spreadsheetId, APIARY_TODOS_SHEET_NAME, rowIndex, updatedRow);
+      await updateRow(
+        sheets,
+        spreadsheetId,
+        APIARY_TODOS_SHEET_NAME,
+        rowIndex,
+        updatedRow
+      );
 
       return toolResponse({
         success: true,

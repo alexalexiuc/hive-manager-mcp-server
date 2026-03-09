@@ -124,7 +124,7 @@ For CI e2e:
 - Input: `{ hive?, limit? }`
 - Output: `{ count, entries }`
 
-### `hive_get_todos`
+### `hive_list_todos`
 
 - Description: Read all general apiary todos from the `apiary_todos` sheet.
 - Input: none
