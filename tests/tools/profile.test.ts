@@ -1,22 +1,35 @@
 import { describe, it } from 'vitest';
 
-describe('hive_get_profile', () => {
-  it.todo('returns profile JSON for existing hive from profiles sheet');
-  it.todo('throws error when profile not found in profiles sheet');
+describe('apiary_get_hive_status', () => {
+  it.todo('returns full hive row for an existing hive from hives sheet');
+  it.todo('throws error when hive is not found');
   it.todo('throws error when x-spreadsheet-id header missing');
 });
 
-describe('hive_update_profile', () => {
-  it.todo('merges new fields with existing profile row');
-  it.todo('writes updated row back to profiles sheet');
-  it.todo('creates new profile row when hive does not exist');
-  it.todo('handles partial updates (only provided fields change)');
+describe('apiary_list_hives', () => {
+  it.todo('returns all active hives by default (active_only=true)');
+  it.todo('returns all hives including inactive when active_only=false');
+  it.todo('filters by location');
+  it.todo('filters by queen_status');
+  it.todo('filters by strength');
+  it.todo('returns count alongside hives array');
   it.todo('throws error when x-spreadsheet-id header missing');
 });
 
-describe('hive_get_all_profiles', () => {
-  it.todo('returns all profile rows from profiles sheet as JSON');
-  it.todo('returns empty list when no profiles exist');
-  it.todo('correctly maps row columns to profile fields');
+describe('apiary_list_due_for_check', () => {
+  it.todo('returns hives where next_check date has passed');
+  it.todo('returns hives with no next_check and last_check older than threshold');
+  it.todo('returns hives with no last_check date (never inspected)');
+  it.todo('defaults to a 7-day threshold when days not provided');
+  it.todo('sorts results by last_check ascending (most overdue first)');
+  it.todo('filters by location when provided');
+  it.todo('throws error when x-spreadsheet-id header missing');
+});
+
+describe('apiary_update_hive_profile', () => {
+  it.todo('creates new hive row when hive does not exist');
+  it.todo('merges new metadata fields with existing hive row');
+  it.todo('converts boolean active flag to string "true"/"false"');
+  it.todo('returns the updated hive row');
   it.todo('throws error when x-spreadsheet-id header missing');
 });

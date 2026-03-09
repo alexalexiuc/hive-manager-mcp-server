@@ -13,42 +13,43 @@ import {
 
 const config = requireE2EConfig();
 
-describe('E2E tool: hive_get_log_history', () => {
+describe('E2E tool: apiary_get_log_history', () => {
   it('returns filtered history that matches logs sheet rows', async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
     await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
     const env = buildE2EEnv(config);
 
-    await callTool(env, ctx.spreadsheetId, 'hive_setup', {}, 401);
+    await callTool(env, ctx.spreadsheetId, 'apiary_setup', {}, 401);
 
     await callTool(
       env,
       ctx.spreadsheetId,
-      'hive_log_entry',
-      { hive: '1', event_type: 'inspection', notes: 'Hive 1 check' },
+      'apiary_log_event',
+      { hive: '1', event_type: 'inspection', summary: 'Hive 1 check' },
       402,
     );
     await callTool(
       env,
       ctx.spreadsheetId,
-      'hive_log_entry',
-      { hive: '2', event_type: 'feeding', notes: 'Hive 2 feeding' },
+      'apiary_log_event',
+      { hive: '2', event_type: 'feeding', summary: 'Hive 2 feeding' },
       403,
     );
 
     const historyResponse = await callTool(
       env,
       ctx.spreadsheetId,
-      'hive_get_log_history',
+      'apiary_get_log_history',
       { hive: '1', limit: 10 },
       404,
     );
     const historyPayload = extractToolJson(historyResponse);
-    expect(historyPayload.count).toBe(1);
+    expect(historyPayload.total_count).toBe(1);
 
     const entries = historyPayload.entries as Array<Record<string, string>>;
     expect(entries[0]?.hive).toBe('1');
     expect(entries[0]?.event_type).toBe('inspection');
+    expect(entries[0]?.summary).toBe('Hive 1 check');
 
     const sheets = createSheetsClient(config.serviceAccountJson!);
     const rows = await getRows(sheets, ctx.spreadsheetId, LOGS_SHEET_NAME);

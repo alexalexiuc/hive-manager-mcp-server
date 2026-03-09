@@ -1,20 +1,23 @@
 import { sheets_v4, drive_v3 } from 'googleapis';
 import {
+  HIVES_SHEET_NAME,
   LOGS_SHEET_NAME,
-  PROFILES_SHEET_NAME,
-  APIARY_TODOS_SHEET_NAME,
+  HARVESTS_SHEET_NAME,
+  TODOS_SHEET_NAME,
   RELOCATIONS_SHEET_NAME,
+  HIVES_SHEET_HEADERS,
   LOGS_SHEET_HEADERS,
-  PROFILES_SHEET_HEADERS,
-  APIARY_TODOS_SHEET_HEADERS,
+  HARVESTS_SHEET_HEADERS,
+  TODOS_SHEET_HEADERS,
   RELOCATIONS_SHEET_HEADERS,
 } from '../constants.js';
 import { execWithBackoffRetry } from '../shared/retry.js';
 
 const REQUIRED_SHEETS = [
+  HIVES_SHEET_NAME,
   LOGS_SHEET_NAME,
-  PROFILES_SHEET_NAME,
-  APIARY_TODOS_SHEET_NAME,
+  HARVESTS_SHEET_NAME,
+  TODOS_SHEET_NAME,
   RELOCATIONS_SHEET_NAME,
 ] as const;
 
@@ -55,7 +58,7 @@ function isMissingSheetError(error: unknown): boolean {
 function toSheetOperationError(error: unknown, sheetName: string): Error {
   if (isMissingSheetError(error)) {
     return new Error(
-      `Required sheet "${sheetName}" is missing. Run hive_setup to create required sheets.`
+      `Required sheet "${sheetName}" is missing. Run apiary_setup to create required sheets.`
     );
   }
 
@@ -185,34 +188,43 @@ export async function ensureSpreadsheetStructure(
   const initial = await execWithBackoffRetry(async () => {
     return sheets.spreadsheets.get({ spreadsheetId });
   });
+  const hasHives = getSheetIdByTitle(initial.data, HIVES_SHEET_NAME) !== null;
   const hasLogs = getSheetIdByTitle(initial.data, LOGS_SHEET_NAME) !== null;
-  const hasProfiles = getSheetIdByTitle(initial.data, PROFILES_SHEET_NAME) !== null;
-  const hasTodos = getSheetIdByTitle(initial.data, APIARY_TODOS_SHEET_NAME) !== null;
+  const hasHarvests = getSheetIdByTitle(initial.data, HARVESTS_SHEET_NAME) !== null;
+  const hasTodos = getSheetIdByTitle(initial.data, TODOS_SHEET_NAME) !== null;
   const hasRelocations = getSheetIdByTitle(initial.data, RELOCATIONS_SHEET_NAME) !== null;
   const defaultSheetId = getSheetIdByTitle(initial.data, 'Sheet1');
 
   const setupRequests: sheets_v4.Schema$Request[] = [];
-  if (!hasLogs) {
+  if (!hasHives) {
     if (defaultSheetId !== null) {
       setupRequests.push({
         updateSheetProperties: {
-          properties: { sheetId: defaultSheetId, title: LOGS_SHEET_NAME },
+          properties: { sheetId: defaultSheetId, title: HIVES_SHEET_NAME },
           fields: 'title',
         },
       });
     } else {
       setupRequests.push({
         addSheet: {
-          properties: { title: LOGS_SHEET_NAME },
+          properties: { title: HIVES_SHEET_NAME },
         },
       });
     }
   }
 
-  if (!hasProfiles) {
+  if (!hasLogs) {
     setupRequests.push({
       addSheet: {
-        properties: { title: PROFILES_SHEET_NAME },
+        properties: { title: LOGS_SHEET_NAME },
+      },
+    });
+  }
+
+  if (!hasHarvests) {
+    setupRequests.push({
+      addSheet: {
+        properties: { title: HARVESTS_SHEET_NAME },
       },
     });
   }
@@ -220,7 +232,7 @@ export async function ensureSpreadsheetStructure(
   if (!hasTodos) {
     setupRequests.push({
       addSheet: {
-        properties: { title: APIARY_TODOS_SHEET_NAME },
+        properties: { title: TODOS_SHEET_NAME },
       },
     });
   }
@@ -251,9 +263,10 @@ export async function ensureSpreadsheetStructure(
       requestBody: {
         valueInputOption: 'USER_ENTERED',
         data: [
+          { range: `${HIVES_SHEET_NAME}!A1`, values: [[...HIVES_SHEET_HEADERS]] },
           { range: `${LOGS_SHEET_NAME}!A1`, values: [[...LOGS_SHEET_HEADERS]] },
-          { range: `${PROFILES_SHEET_NAME}!A1`, values: [[...PROFILES_SHEET_HEADERS]] },
-          { range: `${APIARY_TODOS_SHEET_NAME}!A1`, values: [[...APIARY_TODOS_SHEET_HEADERS]] },
+          { range: `${HARVESTS_SHEET_NAME}!A1`, values: [[...HARVESTS_SHEET_HEADERS]] },
+          { range: `${TODOS_SHEET_NAME}!A1`, values: [[...TODOS_SHEET_HEADERS]] },
           { range: `${RELOCATIONS_SHEET_NAME}!A1`, values: [[...RELOCATIONS_SHEET_HEADERS]] },
         ],
       },

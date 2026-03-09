@@ -1,11 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerSetupTool } from './tools/setup.js';
-import { registerLogTool } from './tools/log.js';
-import { registerProfileTools } from './tools/profile.js';
-import { registerHistoryTool } from './tools/history.js';
+import { registerHiveTools } from './tools/hives.js';
+import { registerLogTools } from './tools/logs.js';
+import { registerHarvestTools } from './tools/harvests.js';
 import { registerTodoTools } from './tools/todos.js';
 import { registerRelocationTools } from './tools/relocations.js';
-import { registerWorkflowTools } from './tools/workflow.js';
 import type { Env } from './types.js';
 
 export function createMcpServer(env: Env): McpServer {
@@ -15,12 +14,11 @@ export function createMcpServer(env: Env): McpServer {
   });
 
   registerSetupTool(server, env);
-  registerLogTool(server, env);
-  registerProfileTools(server, env);
-  registerHistoryTool(server, env);
+  registerHiveTools(server, env);
+  registerLogTools(server, env);
+  registerHarvestTools(server, env);
   registerTodoTools(server, env);
   registerRelocationTools(server, env);
-  registerWorkflowTools(server, env);
 
   return server;
 }

@@ -1,9 +1,10 @@
 import 'dotenv/config';
 import worker from '../../src/index.js';
 import {
-  APIARY_TODOS_SHEET_NAME,
+  HIVES_SHEET_NAME,
   LOGS_SHEET_NAME,
-  PROFILES_SHEET_NAME,
+  HARVESTS_SHEET_NAME,
+  TODOS_SHEET_NAME,
   RELOCATIONS_SHEET_NAME,
   SPREADSHEET_ID_HEADER,
 } from '../../src/constants.js';
@@ -89,16 +90,33 @@ export async function prepareAndClearSpreadsheet(
   }
 
   const sheets = createSheetsClient(config.serviceAccountJson);
+  const spreadsheet = await execWithBackoffRetry(async () => {
+    return sheets.spreadsheets.get({ spreadsheetId });
+  });
+  const existingTitles = new Set(
+    (spreadsheet.data.sheets ?? [])
+      .map((sheet) => sheet.properties?.title)
+      .filter((title): title is string => Boolean(title)),
+  );
+  const ranges = [
+    HIVES_SHEET_NAME,
+    LOGS_SHEET_NAME,
+    HARVESTS_SHEET_NAME,
+    TODOS_SHEET_NAME,
+    RELOCATIONS_SHEET_NAME,
+  ]
+    .filter((sheetName) => existingTitles.has(sheetName))
+    .map((sheetName) => `${sheetName}!A2:Z`);
+
+  if (ranges.length === 0) {
+    return;
+  }
+
   await execWithBackoffRetry(async () => {
     await sheets.spreadsheets.values.batchClear({
       spreadsheetId,
       requestBody: {
-        ranges: [
-          `${LOGS_SHEET_NAME}!A2:Z`,
-          `${PROFILES_SHEET_NAME}!A2:Z`,
-          `${APIARY_TODOS_SHEET_NAME}!A2:Z`,
-          `${RELOCATIONS_SHEET_NAME}!A2:Z`,
-        ],
+        ranges,
       },
     });
   });

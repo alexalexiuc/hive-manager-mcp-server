@@ -10,7 +10,7 @@ export function mockSheetsClient() {
         batchUpdate: vi.fn().mockResolvedValue({ data: {} }),
       },
       batchUpdate: vi.fn().mockResolvedValue({ data: {} }),
-      get: vi.fn().mockResolvedValue({ data: { sheets: [{ properties: { sheetId: 0, title: 'logs' } }] } }),
+      get: vi.fn().mockResolvedValue({ data: { sheets: [{ properties: { sheetId: 0, title: 'hives' } }] } }),
       create: vi.fn().mockResolvedValue({ data: { spreadsheetId: 'mock-spreadsheet-id' } }),
     },
   };
@@ -27,63 +27,75 @@ export function mockDriveClient() {
   };
 }
 
-export function mockProfileRow(hive: string, overrides?: Partial<Record<string, string>>): string[] {
+export function mockHiveRow(hive: string, overrides?: Partial<Record<string, string>>): string[] {
   const data = {
+    hive_type: 'vertical',
+    units: '3',
     last_check: '2024-01-15',
+    next_check: '2024-01-29',
     strength: 'strong',
-    queen_status: 'queen_seen',
+    queen_status: 'seen',
     brood_status: 'healthy',
     food_status: 'medium',
+    last_action: 'Added super',
+    last_treatment: '',
     notes: 'Colony looks healthy',
-    todos: 'Check honey super',
-    updated_at: '2024-01-15T10:00:00.000Z',
+    queen_race: 'Carniolan',
+    queen_birth_year: '2024',
     origin_hive: '',
-    queen_race: '',
-    queen_birth_year: '',
+    location: 'orchard',
+    active: 'true',
+    updated_at: '2024-01-15T10:00:00.000Z',
     ...overrides,
   };
 
   return [
     hive,
+    data.hive_type,
+    data.units,
     data.last_check,
+    data.next_check,
     data.strength,
     data.queen_status,
     data.brood_status,
     data.food_status,
+    data.last_action,
+    data.last_treatment,
     data.notes,
-    data.todos,
-    data.updated_at,
-    data.origin_hive,
     data.queen_race,
     data.queen_birth_year,
+    data.origin_hive,
+    data.location,
+    data.active,
+    data.updated_at,
   ];
 }
 
 export function mockLogRow(overrides?: Partial<Record<string, string>>): string[] {
   const data = {
+    log_id: '01JPABC123456789ABCDEFGHIJ',
     timestamp: '2024-01-15T10:00:00.000Z',
     hive: '1',
     event_type: 'inspection',
-    queen_seen: 'true',
-    brood_status: 'healthy',
-    food_status: 'medium',
-    action_taken: 'Added honey super',
-    notes: 'All looks good',
+    summary: 'Colony looks healthy, added super',
     next_check: '2024-01-29',
-    tags: 'inspection',
+    treatment_product: '',
+    treatment_dose: '',
+    treatment_duration: '',
+    tags: '',
     ...overrides,
   };
 
   return [
+    data.log_id,
     data.timestamp,
     data.hive,
     data.event_type,
-    data.queen_seen,
-    data.brood_status,
-    data.food_status,
-    data.action_taken,
-    data.notes,
+    data.summary,
     data.next_check,
+    data.treatment_product,
+    data.treatment_dose,
+    data.treatment_duration,
     data.tags,
   ];
 }
@@ -99,3 +111,4 @@ export function mockRelocationRow(overrides?: Partial<Record<string, string>>): 
 
   return [data.timestamp, data.hives, data.location, data.notes];
 }
+

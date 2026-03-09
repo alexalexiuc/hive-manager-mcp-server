@@ -6,10 +6,15 @@ import type { Env } from '../types.js';
 
 export function registerSetupTool(server: McpServer, env: Env) {
   server.registerTool(
-    'hive_setup',
+    'apiary_setup',
     {
       description:
-        'Set up a Google Spreadsheet for hive data. Requires x-spreadsheet-id header and ensures required sheets exist.',
+        'Ensure all required sheets and headers exist in the spreadsheet. Idempotent — safe to call at any time. Call once before the first write operation if the spreadsheet may be new or uninitialized.',
+      annotations: {
+        readOnlyHint: false,
+        idempotentHint: true,
+        destructiveHint: false,
+      },
     },
     async () => {
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
@@ -21,7 +26,6 @@ export function registerSetupTool(server: McpServer, env: Env) {
           {
             type: 'text' as const,
             text: JSON.stringify({
-              success: true,
               spreadsheet_url: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`,
             }),
           },
