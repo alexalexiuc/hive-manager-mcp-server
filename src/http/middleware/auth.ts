@@ -1,6 +1,6 @@
 import { PromiseCacheX } from 'promise-cachex';
 import type { Env } from '../../types.js';
-import { verifyToken } from '../token.js';
+import { verifyToken, base64urlDecodeStr } from '../token.js';
 import { unauthorizedResponse } from '../responses.js';
 import type { WorkerHandler } from '../types.js';
 
@@ -32,12 +32,13 @@ async function isAuthorized(request: Request, env: Env): Promise<boolean> {
 
 /** Extract the expiry from the token payload without re-verifying the signature. */
 function computeTtl(token: string): number {
+  const MAX_TTL = 3600 * 1000; // cap at 1 hour regardless of claimed exp
   try {
     const dot = token.indexOf('.');
     if (dot === -1) return 0;
-    const payload = JSON.parse(atob(token.slice(0, dot))) as { exp?: number };
+    const payload = JSON.parse(base64urlDecodeStr(token.slice(0, dot))) as { exp?: number };
     const remaining = (payload.exp ?? 0) - Date.now();
-    return remaining > 0 ? remaining : 0;
+    return remaining > 0 ? Math.min(remaining, MAX_TTL) : 0;
   } catch {
     return 0;
   }
