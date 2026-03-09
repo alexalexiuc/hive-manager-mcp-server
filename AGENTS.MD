@@ -7,29 +7,23 @@ Guidance for coding agents working in `hive-manager-mcp-server`.
 - This file applies to the entire repository.
 - Prefer small, focused changes that preserve current behavior unless a behavior change is explicitly requested.
 
-## Project Summary
+## Canonical Product Spec
 
-- Runtime: Node.js + TypeScript (ESM).
-- Main purpose: MCP server for beekeeping data stored in Google Sheets and Google Drive.
-- Entry points: `src/index.ts` and `src/server.ts`.
-- Core domains:
-  - `src/services/`: Google API integration (`google.ts`, `drive.ts`, `sheets.ts`)
-  - `src/tools/`: MCP tool handlers (`setup`, `log`, `profile`, `history`, `todos`)
+- `Hive Manager MCP Server.md` is the source of truth for:
+  - Spreadsheet schema (sheet names, column order)
+  - MCP tool contracts (tool names, inputs, outputs)
+- Do not duplicate schema/tool details here. Keep this file implementation-focused.
+- When schema or tool contracts change, update `Hive Manager MCP Server.md` in the same PR.
 
-## Local Commands
+## Implementation Map
 
-- Install deps: `npm install`
-- Dev run: `npm run dev`
-- Type check: `npm run type-check`
-- Build: `npm run build`
-- Lint: `npm run lint`
-- Tests: `npm run test`
-- E2E tests: `npm run test:e2e`
-- Deploy (local): `npm run deploy`
-- Vitest config split:
-  - Unit: `vitest.config.ts`
-  - E2E (serial): `vitest.e2e.config.ts`
-  - Shared defaults: `vitest.shared.ts`
+- Runtime: Node.js + TypeScript (ESM)
+- Entrypoints: `src/index.ts`, `src/server.ts`
+- Main domains:
+  - `src/tools/`: MCP tool handlers (`setup`, `hives`, `logs`, `harvests`, `todos`, `relocations`)
+  - `src/services/`: Google clients and Sheets/Drive operations
+  - `src/constants.ts`: canonical sheet headers, event enums, and column index maps
+  - `src/types.ts`: shared payload/result types
 
 ## Coding Conventions
 
@@ -38,7 +32,7 @@ Guidance for coding agents working in `hive-manager-mcp-server`.
 - Keep tool handlers thin and place API/data logic in `src/services/`.
 - Validate inputs with `zod` in tool boundaries.
 - Return clear, stable response shapes from MCP tools.
-- Keep naming aligned with existing tool names prefixed by `hive_`.
+- Keep naming aligned with existing tool names prefixed by `apiary_`.
 
 ## Error Handling
 
@@ -46,30 +40,22 @@ Guidance for coding agents working in `hive-manager-mcp-server`.
 - Do not leak secrets or full credential payloads in logs/errors.
 - Preserve current error behavior unless the task asks for changes.
 
-## Environment and Secrets
-
-- Required runtime secret: `GOOGLE_SERVICE_ACCOUNT_JSON`.
-- Optional runtime var: `SPREADSHEET_ID`.
-- E2E lookup vars: `HIVES_FOLDER_NAME`, `HIVES_FOLDER_ID`, `HIVES_E2E_FOLDER_NAME`, `E2E_SPREADSHEET_NAME`.
-- Never commit real credentials, service-account JSON, or private IDs.
-- Use `.env`/Cloudflare secrets for sensitive values.
-
-## CI/CD Notes
-
-- CI workflow runs on `pull_request`.
-- Deploy workflow runs on `push` to `main` and `workflow_dispatch`.
-- GitHub Actions e2e requires secret `GOOGLE_SERVICE_ACCOUNT_JSON`; `HIVES_FOLDER_ID` can be a repository variable (optional).
-
 ## Testing Expectations
 
 - Add or update tests for behavior changes.
-- Prefer targeted unit tests under `tests/services/` and `tests/tools/`.
-- For integration flows, use `tests/e2e/`.
-- Before handing off substantial changes, run: `npm run test` and `npm run type-check`.
+- Prefer targeted tests close to changed behavior:
+  - Unit/service tests under `tests/services/` and `tests/tools/`
+  - Integration flows in `tests/e2e/`
+- For substantial changes, run:
+  - `npm run type-check`
+  - `npm run test:e2e`
 
 ## Change Checklist
 
 - Keep diffs minimal and easy to review.
-- Update docs (`README.md`) when commands, env vars, or behavior changes.
+- Update docs when behavior changes:
+  - `Hive Manager MCP Server.md` for schema/tool contract changes
+  - `README.md` for setup/runtime/operational changes
 - Update e2e and unit tests for any behavior changes.
 - Ensure imports and build output remain ESM-compatible.
+- Any new column should be added at the end of the respective sheet to avoid breaking existing column order assumptions.

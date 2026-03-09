@@ -29,7 +29,6 @@ function rowToLogEntry(row: string[]): LogEntry {
     hive: row[LOG_COL.hive] ?? '',
     event_type: row[LOG_COL.event_type] ?? '',
     summary: row[LOG_COL.summary] ?? '',
-    next_check: row[LOG_COL.next_check] ?? '',
     treatment_product: row[LOG_COL.treatment_product] ?? '',
     treatment_dose: row[LOG_COL.treatment_dose] ?? '',
     treatment_duration: row[LOG_COL.treatment_duration] ?? '',
@@ -77,7 +76,7 @@ const LogEventSchema = z.object({
   next_check: yyyyMmDdDateSchema
     .optional()
     .describe(
-      'Recommended next inspection date (YYYY-MM-DD). Updates the hive row and stored in the log.',
+      'Recommended next inspection date (YYYY-MM-DD). Updates the hive row.',
     ),
   treatment_product: z
     .string()
@@ -154,7 +153,6 @@ export function registerLogTools(server: McpServer, env: Env) {
         input.hive,
         input.event_type,
         input.summary ?? '',
-        input.next_check ?? '',
         input.treatment_product ?? '',
         input.treatment_dose ?? '',
         input.treatment_duration ?? '',

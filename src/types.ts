@@ -25,7 +25,6 @@ export interface LogEntry {
   hive: string;
   event_type: string;
   summary?: string;
-  next_check?: string;
   treatment_product?: string;
   treatment_dose?: string;
   treatment_duration?: string;

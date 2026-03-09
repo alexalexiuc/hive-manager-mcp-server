@@ -114,7 +114,6 @@ export function registerHarvestTools(server: McpServer, env: Env) {
         input.hive,
         'harvest',
         input.notes ? `${harvestDesc}. ${input.notes}` : harvestDesc,
-        '', // next_check
         '', // treatment_product
         '', // treatment_dose
         '', // treatment_duration

@@ -54,11 +54,11 @@ describe('E2E tool: apiary_log_event (inspection)', () => {
     expect(logRows[0][LOG_COL.hive]).toBe('3');
     expect(logRows[0][LOG_COL.event_type]).toBe('inspection');
     expect(logRows[0][LOG_COL.summary]).toBe('Looked great, added super');
-    expect(logRows[0][LOG_COL.next_check]).toBe('2026-03-22');
 
     const hiveRows = await getRows(sheets, ctx.spreadsheetId, HIVES_SHEET_NAME);
     expect(hiveRows).toHaveLength(1);
     expect(hiveRows[0][HIVE_COL.hive]).toBe('3');
+    expect(hiveRows[0][HIVE_COL.next_check]).toBe('2026-03-22');
     expect(hiveRows[0][HIVE_COL.strength]).toBe('strong');
     expect(hiveRows[0][HIVE_COL.queen_status]).toBe('seen');
     expect(hiveRows[0][HIVE_COL.brood_status]).toBe('healthy');

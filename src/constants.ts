@@ -32,7 +32,6 @@ export const LOGS_SHEET_HEADERS = [
   'hive',
   'event_type',
   'summary',
-  'next_check',
   'treatment_product',
   'treatment_dose',
   'treatment_duration',
