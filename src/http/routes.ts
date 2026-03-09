@@ -1,22 +1,39 @@
+import { match } from 'path-to-regexp';
 import type { RouteDefinition } from './types.js';
 import { handleHealthRequest } from './handlers/health.js';
 import { handleMcpRequest } from './handlers/mcp.js';
+import {
+  handleOAuthMetadata,
+  handleOAuthAuthorizeGet,
+  handleOAuthAuthorizePost,
+  handleOAuthToken,
+} from './handlers/oauth.js';
 
-const routes: RouteDefinition[] = [
-  {
-    method: 'GET',
-    path: '/health',
-    isPublic: true,
-    handler: handleHealthRequest,
-  },
-  { method: 'POST', path: '/mcp', isPublic: false, handler: handleMcpRequest },
-];
+interface CompiledRoute extends RouteDefinition {
+  matcher: ReturnType<typeof match>;
+}
 
-export function getRoute(
+const routes: CompiledRoute[] = (
+  [
+    { method: 'GET',  path: '/health',                                   isPublic: true,  handler: handleHealthRequest },
+    { method: 'GET',  path: '/.well-known/oauth-authorization-server',   isPublic: true,  handler: handleOAuthMetadata },
+    { method: 'GET',  path: '/oauth/authorize',                          isPublic: true,  handler: handleOAuthAuthorizeGet },
+    { method: 'POST', path: '/oauth/authorize',                          isPublic: true,  handler: handleOAuthAuthorizePost },
+    { method: 'POST', path: '/oauth/token',                              isPublic: true,  handler: handleOAuthToken },
+    { method: 'POST', path: '/mcp/:spreadsheetId',                       isPublic: false, handler: handleMcpRequest },
+  ] satisfies RouteDefinition[]
+).map((route) => ({ ...route, matcher: match(route.path) }));
+
+export function matchRoute(
   request: Request,
   pathname: string
-): RouteDefinition | undefined {
-  return routes.find(
-    (route) => route.method === request.method && route.path === pathname
-  );
+): { route: RouteDefinition; params: Record<string, string> } | undefined {
+  for (const route of routes) {
+    if (route.method !== request.method) continue;
+    const result = route.matcher(pathname);
+    if (result) {
+      return { route, params: result.params as Record<string, string> };
+    }
+  }
+  return undefined;
 }

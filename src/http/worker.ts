@@ -15,6 +15,7 @@ const worker = {
       requestId: createRequestId(),
       startedAt: Date.now(),
       url: new URL(request.url),
+      params: {},
     });
   },
 };

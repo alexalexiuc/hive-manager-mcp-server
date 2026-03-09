@@ -3,9 +3,7 @@ import { createSheetsClient } from './google.js';
 
 export function requireSpreadsheetId(env: Env): string {
   if (!env.REQUEST_SPREADSHEET_ID || !env.REQUEST_SPREADSHEET_ID.trim()) {
-    throw new Error(
-      'Missing spreadsheet id. Pass x-spreadsheet-id request header.',
-    );
+    throw new Error('Missing spreadsheet id. Include it in the MCP endpoint URL: /mcp/:spreadsheetId');
   }
 
   return env.REQUEST_SPREADSHEET_ID.trim();
