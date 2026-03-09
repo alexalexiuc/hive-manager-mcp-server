@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { LOGS_SHEET_NAME, PROFILES_SHEET_NAME } from '../../src/constants.js';
+import {
+  LOGS_SHEET_NAME,
+  PROFILE_COL,
+  PROFILES_SHEET_NAME,
+} from '../../src/constants.js';
 import { createSheetsClient } from '../../src/services/google.js';
 import { getRows } from '../../src/services/sheets.js';
 import {
@@ -59,10 +63,10 @@ describe('E2E tool: hive_log_inspection', () => {
     );
     expect(profileRows).toHaveLength(1);
     expect(profileRows[0][0]).toBe('3');
-    expect(profileRows[0][2]).toBe('strong');
-    expect(profileRows[0][3]).toBe('queen_seen');
-    expect(profileRows[0][4]).toBe('healthy');
-    expect(profileRows[0][5]).toBe('medium');
+    expect(profileRows[0][PROFILE_COL.strength]).toBe('strong');
+    expect(profileRows[0][PROFILE_COL.queen_status]).toBe('queen_seen');
+    expect(profileRows[0][PROFILE_COL.brood_status]).toBe('healthy');
+    expect(profileRows[0][PROFILE_COL.food_status]).toBe('medium');
   }, 60_000);
 });
 

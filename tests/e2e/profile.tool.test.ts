@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PROFILES_SHEET_NAME } from '../../src/constants.js';
+import { PROFILE_COL, PROFILES_SHEET_NAME } from '../../src/constants.js';
 import { createSheetsClient } from '../../src/services/google.js';
 import { getRows } from '../../src/services/sheets.js';
 import {
@@ -67,6 +67,6 @@ describe('E2E tools: profile', () => {
     );
     expect(profileRows).toHaveLength(1);
     expect(profileRows[0][0]).toBe('1');
-    expect(profileRows[0][2]).toBe('strong');
+    expect(profileRows[0][PROFILE_COL.strength]).toBe('strong');
   }, 60_000);
 });
