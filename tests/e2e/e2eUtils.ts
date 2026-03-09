@@ -6,25 +6,27 @@ import {
   HARVESTS_SHEET_NAME,
   TODOS_SHEET_NAME,
   RELOCATIONS_SHEET_NAME,
-  SPREADSHEET_ID_HEADER,
 } from '../../src/constants.js';
 import {
   execWithBackoffRetry,
   isRetryableGoogleQuotaError,
 } from '../../src/shared/retry.js';
 import { createSheetsClient } from '../../src/services/google.js';
+import { signToken } from '../../src/http/token.js';
 import type { Env } from '../../src/types.js';
 
 type E2EConfig = {
   serviceAccountJson?: string;
   spreadsheetId?: string;
-  authApiKey?: string;
+  oauthClientId?: string;
+  oauthClientSecret?: string;
 };
 
 export type RequiredE2EConfig = {
   serviceAccountJson: string;
   spreadsheetId: string;
-  authApiKey: string;
+  oauthClientId: string;
+  oauthClientSecret: string;
 };
 
 function getEnvValue(name: string): string | undefined {
@@ -36,7 +38,8 @@ export function getE2EConfig(): E2EConfig {
   return {
     serviceAccountJson: getEnvValue('GOOGLE_SERVICE_ACCOUNT_JSON'),
     spreadsheetId: getEnvValue('E2E_SPREADSHEET_ID'),
-    authApiKey: getEnvValue('AUTH_API_KEY'),
+    oauthClientId: getEnvValue('OAUTH_CLIENT_ID'),
+    oauthClientSecret: getEnvValue('OAUTH_CLIENT_SECRET'),
   };
 }
 
@@ -50,8 +53,11 @@ export function requireE2EConfig(): RequiredE2EConfig {
   if (!config.spreadsheetId) {
     missing.push('E2E_SPREADSHEET_ID');
   }
-  if (!config.authApiKey) {
-    missing.push('AUTH_API_KEY');
+  if (!config.oauthClientId) {
+    missing.push('OAUTH_CLIENT_ID');
+  }
+  if (!config.oauthClientSecret) {
+    missing.push('OAUTH_CLIENT_SECRET');
   }
 
   if (missing.length > 0) {
@@ -63,7 +69,8 @@ export function requireE2EConfig(): RequiredE2EConfig {
   return {
     serviceAccountJson: config.serviceAccountJson!,
     spreadsheetId: config.spreadsheetId!,
-    authApiKey: config.authApiKey!,
+    oauthClientId: config.oauthClientId!,
+    oauthClientSecret: config.oauthClientSecret!,
   };
 }
 
@@ -126,13 +133,17 @@ export function buildE2EEnv(config: E2EConfig): Env {
   if (!config.serviceAccountJson) {
     throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is required for e2e tests.');
   }
-  if (!config.authApiKey) {
-    throw new Error('AUTH_API_KEY is required for e2e tests.');
+  if (!config.oauthClientId) {
+    throw new Error('OAUTH_CLIENT_ID is required for e2e tests.');
+  }
+  if (!config.oauthClientSecret) {
+    throw new Error('OAUTH_CLIENT_SECRET is required for e2e tests.');
   }
 
   return {
     GOOGLE_SERVICE_ACCOUNT_JSON: config.serviceAccountJson,
-    AUTH_API_KEY: config.authApiKey,
+    OAUTH_CLIENT_ID: config.oauthClientId,
+    OAUTH_CLIENT_SECRET: config.oauthClientSecret,
   };
 }
 
@@ -143,14 +154,18 @@ export async function callMcpMethod(
   params: Record<string, unknown>,
   id = 1,
 ): Promise<Record<string, unknown>> {
+  const accessToken = await signToken(
+    { client_id: env.OAUTH_CLIENT_ID, exp: Date.now() + 3600 * 1000 },
+    env.OAUTH_CLIENT_SECRET,
+  );
+
   return execWithBackoffRetry(async () => {
-    const request = new Request('https://example.com/mcp', {
+    const request = new Request(`https://example.com/mcp/${spreadsheetId}`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         accept: 'application/json, text/event-stream',
-        authorization: `Bearer ${env.AUTH_API_KEY ?? ''}`,
-        [SPREADSHEET_ID_HEADER]: spreadsheetId,
+        authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
         jsonrpc: '2.0',

@@ -13,4 +13,5 @@ invocation_logs = true
 
 # Secrets (set via: wrangler secret put <SECRET_NAME>)
 # GOOGLE_SERVICE_ACCOUNT_JSON
-# AUTH_API_KEY
+# OAUTH_CLIENT_ID
+# OAUTH_CLIENT_SECRET

@@ -84,8 +84,6 @@ export const GOOGLE_SCOPES = [
 export const DEFAULT_LOG_LIMIT = 20;
 export const MAX_LOG_LIMIT = 200;
 
-export const SPREADSHEET_ID_HEADER = 'x-spreadsheet-id';
-
 // Column index maps — derived from header arrays so indices stay in sync.
 export const HIVE_COL = Object.fromEntries(
   HIVES_SHEET_HEADERS.map((h, i) => [h, i]),

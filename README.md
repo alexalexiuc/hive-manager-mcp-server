@@ -41,9 +41,10 @@ npm run build
 # authenticate once
 npx wrangler login
 
-# required secret
+# required secrets
 npx wrangler secret put GOOGLE_SERVICE_ACCOUNT_JSON
-npx wrangler secret put AUTH_API_KEY
+npx wrangler secret put OAUTH_CLIENT_ID
+npx wrangler secret put OAUTH_CLIENT_SECRET
 
 # deploy
 npm run deploy
@@ -52,26 +53,38 @@ npm run deploy
 Notes:
 
 - `npm run deploy` runs `npm run build && wrangler deploy`.
-- Spreadsheet selection is request-scoped via `x-spreadsheet-id` header only.
+- Spreadsheet selection is request-scoped via the MCP endpoint URL: `POST /mcp/:spreadsheetId`.
 
-## Request Spreadsheet Header (Important)
+## MCP Endpoint URL
 
-Pass spreadsheet id per request using header:
+The spreadsheet ID is part of the URL path:
 
-- Required header: `x-spreadsheet-id: <GOOGLE_SPREADSHEET_ID>`
+```
+POST https://<worker-host>/mcp/<GOOGLE_SPREADSHEET_ID>
+```
 
-This enables each requestor/client to target its own sheet without a shared authorization key layer.
+Each client targets its own spreadsheet by using a different URL. Authentication is handled via OAuth 2.0 (authorization code flow with PKCE).
+
+## OAuth Setup (for Claude.ai Custom Connector)
+
+The server implements OAuth 2.0. Discovery metadata is available at:
+
+```
+GET https://<worker-host>/.well-known/oauth-authorization-server
+```
+
+When configuring a custom MCP connector, set the server URL to:
+
+```
+https://<worker-host>/mcp/<GOOGLE_SPREADSHEET_ID>
+```
+
+Use any string for `OAUTH_CLIENT_ID` (e.g. `hive-manager`) and a strong random value for `OAUTH_CLIENT_SECRET`.
 
 ## Suggested Project Instructions (for chat clients using this MCP)
 
-Copy/paste this into your Project/Instructions:
-
 ```text
-When using the hive-manager MCP server, always include:
-x-spreadsheet-id: <GOOGLE_SPREADSHEET_ID>
-
-Do not call MCP tools without this header.
-Use hive_setup before the first read/write operation if spreadsheet structure may be missing.
+Use apiary_setup before the first write operation if the spreadsheet may be new or uninitialized.
 ```
 
 ## GitHub Actions
@@ -83,6 +96,7 @@ For CI e2e:
 
 - Required repository secret: `GOOGLE_SERVICE_ACCOUNT_JSON`
 - Required repository variable/secret: `E2E_SPREADSHEET_ID`
+- `OAUTH_CLIENT_ID` and `OAUTH_CLIENT_SECRET` are hardcoded to fixed CI values in the workflow (no secret needed).
 
 ## MCP Tools
 
@@ -168,9 +182,10 @@ For CI e2e:
 
 ## Environment Variables
 
-| Variable                      | Required  | Description                            |
-| ----------------------------- | --------- | -------------------------------------- |
-| `E2E_SPREADSHEET_ID`          | Yes (e2e) | Spreadsheet id used for e2e test runs  |
-| `GOOGLE_SERVICE_ACCOUNT_JSON` | Yes       | Full service-account JSON string       |
-| `AUTH_API_KEY`                | Yes       | Bearer token required for all requests |
-| `PORT`                        | No        | Local/server port (default: `3000`)    |
+| Variable                      | Required  | Description                                        |
+| ----------------------------- | --------- | -------------------------------------------------- |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | Yes       | Full service-account JSON string                   |
+| `OAUTH_CLIENT_ID`             | Yes       | OAuth client identifier                            |
+| `OAUTH_CLIENT_SECRET`         | Yes       | OAuth signing secret (use a strong random value)   |
+| `E2E_SPREADSHEET_ID`          | Yes (e2e) | Spreadsheet ID used for e2e test runs              |
+| `PORT`                        | No        | Local/server port (default: `3000`)                |
