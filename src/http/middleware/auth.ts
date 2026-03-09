@@ -23,11 +23,22 @@ async function isAuthorized(request: Request, env: Env): Promise<boolean> {
   if (scheme?.toLowerCase() !== 'bearer' || !token) return false;
 
   const cacheKey = `${env.OAUTH_CLIENT_ID}:${token}`;
-  return tokenCache.get(cacheKey, async () => {
-    const payload = await verifyToken<AccessTokenPayload>(token, env.OAUTH_CLIENT_SECRET);
-    if (!payload || payload.client_id !== env.OAUTH_CLIENT_ID) return false;
-    return true;
-  }, { ttl: computeTtl(token) });
+  const valid = await tokenCache.get(
+    cacheKey,
+    async () => {
+      const payload = await verifyToken<AccessTokenPayload>(
+        token,
+        env.OAUTH_CLIENT_SECRET
+      );
+      if (!payload || payload.client_id !== env.OAUTH_CLIENT_ID) return false;
+      return true;
+    },
+    { ttl: computeTtl(token) }
+  );
+  if (!valid) {
+    tokenCache.delete(cacheKey); // remove invalid tokens from cache immediately
+  }
+  return valid;
 }
 
 /** Extract the expiry from the token payload without re-verifying the signature. */
@@ -36,7 +47,9 @@ function computeTtl(token: string): number {
   try {
     const dot = token.indexOf('.');
     if (dot === -1) return 0;
-    const payload = JSON.parse(base64urlDecodeStr(token.slice(0, dot))) as { exp?: number };
+    const payload = JSON.parse(base64urlDecodeStr(token.slice(0, dot))) as {
+      exp?: number;
+    };
     const remaining = (payload.exp ?? 0) - Date.now();
     return remaining > 0 ? Math.min(remaining, MAX_TTL) : 0;
   } catch {
