@@ -165,6 +165,11 @@ export function registerLogTools(server: McpServer, env: Env) {
 
       // Update hives sheet
       const updatedAt = new Date().toISOString();
+      const treatmentSummary =
+        input.event_type === EventType.TREATMENT && input.treatment_product
+          ? `${input.treatment_product} ${date}`
+          : '';
+
       const rowIndex = await findRowIndex(
         sheets,
         spreadsheetId,
@@ -186,9 +191,7 @@ export function registerLogTools(server: McpServer, env: Env) {
           input.event_type === EventType.INSPECTION ? (input.brood_status ?? '') : '',
           input.event_type === EventType.INSPECTION ? (input.food_status ?? '') : '',
           input.summary ?? '', // last_action
-          input.event_type === EventType.TREATMENT && input.treatment_product
-            ? `${input.treatment_product} ${date}`
-            : '',
+          treatmentSummary,
           '', // notes
           '', // queen_race
           '', // queen_birth_year
@@ -226,8 +229,8 @@ export function registerLogTools(server: McpServer, env: Env) {
           if (input.food_status) updated.food_status = input.food_status;
         }
 
-        if (isTreatment && input.treatment_product) {
-          updated.last_treatment = `${input.treatment_product} ${date}`;
+        if (isTreatment && treatmentSummary) {
+          updated.last_treatment = treatmentSummary;
         }
 
         await updateRow(

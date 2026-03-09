@@ -106,15 +106,14 @@ export function registerHarvestTools(server: McpServer, env: Env) {
       await appendRow(sheets, spreadsheetId, HARVESTS_SHEET_NAME, harvestRow);
 
       // Append harvest entry to logs sheet
+      const harvestDesc = `Harvested ${input.weight_kg}kg${input.season ? ` (${input.season})` : ''}`;
       const logId = generateUlid();
       const logRow = [
         logId,
         timestamp,
         input.hive,
         'harvest',
-        input.notes
-          ? `Harvested ${input.weight_kg}kg${input.season ? ` (${input.season})` : ''}. ${input.notes}`
-          : `Harvested ${input.weight_kg}kg${input.season ? ` (${input.season})` : ''}`,
+        input.notes ? `${harvestDesc}. ${input.notes}` : harvestDesc,
         '', // next_check
         '', // treatment_product
         '', // treatment_dose
@@ -141,7 +140,7 @@ export function registerHarvestTools(server: McpServer, env: Env) {
         const updated = {
           ...current,
           last_check: date,
-          last_action: `Harvested ${input.weight_kg}kg${input.season ? ` (${input.season})` : ''}`,
+          last_action: harvestDesc,
           updated_at: updatedAt,
         };
 

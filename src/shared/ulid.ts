@@ -12,9 +12,11 @@ function encodeTime(now: number, len: number): string {
 }
 
 function encodeRandom(len: number): string {
+  const bytes = new Uint8Array(len);
+  crypto.getRandomValues(bytes);
   let str = '';
   for (let i = 0; i < len; i++) {
-    str += ENCODING.charAt(Math.floor(Math.random() * ENCODING_LEN));
+    str += ENCODING.charAt(bytes[i] % ENCODING_LEN);
   }
   return str;
 }
