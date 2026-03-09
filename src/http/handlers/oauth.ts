@@ -62,6 +62,30 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+/**
+ * Validate redirect_uri: must be a parseable URL and either https (any host)
+ * or http restricted to localhost / 127.0.0.1.
+ * Returns the parsed URL on success or null on failure.
+ */
+function validateRedirectUri(redirectUri: string): URL | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(redirectUri);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol === 'https:') return parsed;
+  if (
+    parsed.protocol === 'http:' &&
+    (parsed.hostname === 'localhost' ||
+      parsed.hostname === '127.0.0.1' ||
+      parsed.hostname === '[::1]')
+  ) {
+    return parsed;
+  }
+  return null;
+}
+
 export async function handleOAuthAuthorizeGet(context: RequestContext): Promise<Response> {
   const { url, env } = context;
   const params = url.searchParams;
@@ -72,8 +96,12 @@ export async function handleOAuthAuthorizeGet(context: RequestContext): Promise<
   if (params.get('response_type') !== 'code') {
     return new Response('Only response_type=code is supported', { status: 400 });
   }
-  if (!params.get('redirect_uri')) {
+  const rawRedirectUri = params.get('redirect_uri');
+  if (!rawRedirectUri) {
     return new Response('Missing redirect_uri', { status: 400 });
+  }
+  if (!validateRedirectUri(rawRedirectUri)) {
+    return new Response('Invalid redirect_uri', { status: 400 });
   }
 
   return new Response(renderConsentPage(params), {
@@ -100,12 +128,15 @@ export async function handleOAuthAuthorizePost(context: RequestContext): Promise
   if (!redirectUri) {
     return new Response('Missing redirect_uri', { status: 400 });
   }
+  const parsedRedirectUri = validateRedirectUri(redirectUri);
+  if (!parsedRedirectUri) {
+    return new Response('Invalid redirect_uri', { status: 400 });
+  }
 
   if (body.get('action') !== 'allow') {
-    const url = new URL(redirectUri);
-    url.searchParams.set('error', 'access_denied');
-    if (state) url.searchParams.set('state', state);
-    return Response.redirect(url.toString(), 302);
+    parsedRedirectUri.searchParams.set('error', 'access_denied');
+    if (state) parsedRedirectUri.searchParams.set('state', state);
+    return Response.redirect(parsedRedirectUri.toString(), 302);
   }
 
   const clientId = body.get('client_id') as string | null;
@@ -124,10 +155,9 @@ export async function handleOAuthAuthorizePost(context: RequestContext): Promise
     env.OAUTH_CLIENT_SECRET
   );
 
-  const redirectUrl = new URL(redirectUri);
-  redirectUrl.searchParams.set('code', code);
-  if (state) redirectUrl.searchParams.set('state', state);
-  return Response.redirect(redirectUrl.toString(), 302);
+  parsedRedirectUri.searchParams.set('code', code);
+  if (state) parsedRedirectUri.searchParams.set('state', state);
+  return Response.redirect(parsedRedirectUri.toString(), 302);
 }
 
 // ---- Token endpoint ----

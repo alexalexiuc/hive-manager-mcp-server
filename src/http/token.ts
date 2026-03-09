@@ -11,6 +11,15 @@ function base64urlDecode(str: string): Uint8Array {
   return Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
 }
 
+function base64urlEncodeStr(str: string): string {
+  // .buffer is typed as ArrayBufferLike (which includes SharedArrayBuffer); cast to ArrayBuffer for the helper
+  return base64urlEncode(new TextEncoder().encode(str).buffer as ArrayBuffer);
+}
+
+export function base64urlDecodeStr(str: string): string {
+  return new TextDecoder().decode(base64urlDecode(str));
+}
+
 async function getHmacKey(secret: string) {
   return crypto.subtle.importKey(
     'raw',
@@ -25,7 +34,7 @@ export async function signToken(
   payload: object,
   secret: string
 ): Promise<string> {
-  const data = btoa(JSON.stringify(payload));
+  const data = base64urlEncodeStr(JSON.stringify(payload));
   const key = await getHmacKey(secret);
   const sig = await crypto.subtle.sign(
     'HMAC',
@@ -54,7 +63,7 @@ export async function verifyToken<T extends { exp: number }>(
   if (!valid) return null;
 
   try {
-    const payload = JSON.parse(atob(data)) as T;
+    const payload = JSON.parse(base64urlDecodeStr(data)) as T;
     if (payload.exp < Date.now()) return null;
     return payload;
   } catch {
