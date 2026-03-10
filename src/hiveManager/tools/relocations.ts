@@ -1,17 +1,23 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { appendRow, findRowIndex, getRows, updateRow } from '../services/sheets.js';
-import { requireSpreadsheetContext } from '../services/spreadsheet.js';
+import {
+  appendRow,
+  findRowIndex,
+  getRows,
+  updateRow,
+} from '../../services/sheets';
+import { requireSpreadsheetContext } from '../../services/spreadsheet';
 import {
   RELOCATION_COL,
   RELOCATIONS_SHEET_NAME,
   HIVES_SHEET_NAME,
   HIVE_COL,
-} from '../constants.js';
-import { isoTimestampSchema } from '../shared/validation.js';
-import { toolResponse } from './toolResponse.js';
-import { rowToHive, hiveToRow } from './hives.js';
-import type { Env, HiveRelocation } from '../types.js';
+} from '../constants';
+import { isoTimestampSchema } from '../../shared/validation';
+import { toolResponse } from './toolResponse';
+import { rowToHive, hiveToRow } from './hives';
+import type { HiveRelocation } from '../types';
+import { Env } from '../../types';
 
 function rowToRelocation(row: string[]): HiveRelocation {
   return {
@@ -26,7 +32,7 @@ const LogRelocationSchema = z.object({
   hives: z
     .string()
     .describe(
-      'Comma-separated list of hive identifiers being relocated, e.g. "3,5,7"',
+      'Comma-separated list of hive identifiers being relocated, e.g. "3,5,7"'
     ),
   location: z
     .string()
@@ -34,10 +40,7 @@ const LogRelocationSchema = z.object({
   timestamp: isoTimestampSchema
     .optional()
     .describe('ISO datetime of the move. Defaults to now.'),
-  notes: z
-    .string()
-    .optional()
-    .describe('Optional notes about the relocation'),
+  notes: z.string().optional().describe('Optional notes about the relocation'),
 });
 
 const GetRelocationHistorySchema = z.object({
@@ -45,7 +48,7 @@ const GetRelocationHistorySchema = z.object({
     .string()
     .optional()
     .describe(
-      'Filter entries to a specific hive identifier. Returns all entries when omitted.',
+      'Filter entries to a specific hive identifier. Returns all entries when omitted.'
     ),
   limit: z
     .number()
@@ -53,7 +56,9 @@ const GetRelocationHistorySchema = z.object({
     .positive()
     .max(500)
     .optional()
-    .describe('Maximum number of most-recent entries to return. Defaults to 50.'),
+    .describe(
+      'Maximum number of most-recent entries to return. Defaults to 50.'
+    ),
 });
 
 type LogRelocationInput = z.infer<typeof LogRelocationSchema>;
@@ -87,11 +92,15 @@ export function registerRelocationTools(server: McpServer, env: Env) {
           spreadsheetId,
           HIVES_SHEET_NAME,
           HIVE_COL.hive,
-          hiveId,
+          hiveId
         );
 
         if (rowIndex !== null) {
-          const allRows = await getRows(sheets, spreadsheetId, HIVES_SHEET_NAME);
+          const allRows = await getRows(
+            sheets,
+            spreadsheetId,
+            HIVES_SHEET_NAME
+          );
           const existing = allRows[rowIndex - 2] ?? [];
           const current = rowToHive(existing);
 
@@ -106,7 +115,7 @@ export function registerRelocationTools(server: McpServer, env: Env) {
             spreadsheetId,
             HIVES_SHEET_NAME,
             rowIndex,
-            hiveToRow(updated),
+            hiveToRow(updated)
           );
         }
       }
@@ -116,7 +125,7 @@ export function registerRelocationTools(server: McpServer, env: Env) {
         hives: input.hives,
         location: input.location,
       });
-    },
+    }
   );
 
   server.registerTool(
@@ -130,7 +139,11 @@ export function registerRelocationTools(server: McpServer, env: Env) {
     async (input: GetRelocationHistoryInput) => {
       const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
 
-      const allRows = await getRows(sheets, spreadsheetId, RELOCATIONS_SHEET_NAME);
+      const allRows = await getRows(
+        sheets,
+        spreadsheetId,
+        RELOCATIONS_SHEET_NAME
+      );
       const limit = input.limit ?? 50;
 
       let filtered = allRows;
@@ -147,13 +160,12 @@ export function registerRelocationTools(server: McpServer, env: Env) {
 
       const sorted = [...filtered].sort((a, b) =>
         (a[RELOCATION_COL.timestamp] ?? '').localeCompare(
-          b[RELOCATION_COL.timestamp] ?? '',
-        ),
+          b[RELOCATION_COL.timestamp] ?? ''
+        )
       );
       const entries = sorted.slice(-limit).map((row) => rowToRelocation(row));
 
       return toolResponse({ count: entries.length, entries });
-    },
+    }
   );
 }
-

@@ -1,8 +1,8 @@
 import { PromiseCacheX } from 'promise-cachex';
-import type { Env } from '../../types.js';
-import { verifyToken, base64urlDecodeStr } from '../token.js';
-import { unauthorizedResponse } from '../responses.js';
-import type { WorkerHandler } from '../types.js';
+import type { Env } from '../../types';
+import { verifyToken, base64urlDecodeStr } from '../token';
+import { unauthorizedResponse } from '../responses';
+import type { WorkerHandler } from '../types';
 
 interface AccessTokenPayload {
   client_id: string;

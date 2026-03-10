@@ -5,12 +5,13 @@ import {
   findRowIndex,
   getRows,
   updateRow,
-} from '../services/sheets.js';
-import { requireSpreadsheetContext } from '../services/spreadsheet.js';
-import { HIVE_COL, HIVES_SHEET_NAME } from '../constants.js';
-import { yyyyMmDdDateSchema } from '../shared/validation.js';
-import { toolResponse } from './toolResponse.js';
-import type { Env, Hive } from '../types.js';
+} from '../../services/sheets';
+import { requireSpreadsheetContext } from '../../services/spreadsheet';
+import { HIVE_COL, HIVES_SHEET_NAME } from '../constants';
+import { yyyyMmDdDateSchema } from '../../shared/validation';
+import { toolResponse } from './toolResponse';
+import type { Hive } from '../types';
+import { Env } from '../../types';
 
 export function rowToHive(row: string[]): Hive {
   return {
@@ -90,12 +91,9 @@ const ListDueForCheckSchema = z.object({
     .default(7)
     .optional()
     .describe(
-      'Fallback overdue threshold in days used when next_check is not set on a hive. Defaults to 7.',
+      'Fallback overdue threshold in days used when next_check is not set on a hive. Defaults to 7.'
     ),
-  location: z
-    .string()
-    .optional()
-    .describe('Scope to one location label'),
+  location: z.string().optional().describe('Scope to one location label'),
 });
 
 const UpdateHiveProfileSchema = z.object({
@@ -128,10 +126,7 @@ const UpdateHiveProfileSchema = z.object({
     .boolean()
     .optional()
     .describe('Set to false to decommission or winter a hive'),
-  notes: z
-    .string()
-    .optional()
-    .describe('Replace standing notes on the hive'),
+  notes: z.string().optional().describe('Replace standing notes on the hive'),
   next_check: yyyyMmDdDateSchema
     .optional()
     .describe('Recommended next inspection date (YYYY-MM-DD)'),
@@ -162,7 +157,7 @@ export function registerHiveTools(server: McpServer, env: Env) {
       }
 
       return toolResponse(rowToHive(row));
-    },
+    }
   );
 
   server.registerTool(
@@ -192,7 +187,7 @@ export function registerHiveTools(server: McpServer, env: Env) {
       if (input.queen_status) {
         const qs = input.queen_status.toLowerCase();
         hives = hives.filter(
-          (h) => (h.queen_status ?? '').toLowerCase() === qs,
+          (h) => (h.queen_status ?? '').toLowerCase() === qs
         );
       }
 
@@ -202,7 +197,7 @@ export function registerHiveTools(server: McpServer, env: Env) {
       }
 
       return toolResponse({ hives, count: hives.length });
-    },
+    }
   );
 
   server.registerTool(
@@ -252,7 +247,7 @@ export function registerHiveTools(server: McpServer, env: Env) {
       });
 
       return toolResponse({ hives: due, count: due.length });
-    },
+    }
   );
 
   server.registerTool(
@@ -273,7 +268,7 @@ export function registerHiveTools(server: McpServer, env: Env) {
         spreadsheetId,
         HIVES_SHEET_NAME,
         HIVE_COL.hive,
-        input.hive,
+        input.hive
       );
 
       if (rowIndex === null) {
@@ -298,7 +293,12 @@ export function registerHiveTools(server: McpServer, env: Env) {
           active: input.active != null ? String(input.active) : 'true',
           updated_at: updatedAt,
         };
-        await appendRow(sheets, spreadsheetId, HIVES_SHEET_NAME, hiveToRow(newHive));
+        await appendRow(
+          sheets,
+          spreadsheetId,
+          HIVES_SHEET_NAME,
+          hiveToRow(newHive)
+        );
         return toolResponse(newHive);
       }
 
@@ -309,7 +309,8 @@ export function registerHiveTools(server: McpServer, env: Env) {
       const merged: Hive = {
         hive: input.hive,
         hive_type: input.hive_type ?? current.hive_type ?? '',
-        units: input.units != null ? String(input.units) : (current.units ?? ''),
+        units:
+          input.units != null ? String(input.units) : (current.units ?? ''),
         last_check: current.last_check ?? '',
         next_check: input.next_check ?? current.next_check ?? '',
         strength: current.strength ?? '',
@@ -320,10 +321,14 @@ export function registerHiveTools(server: McpServer, env: Env) {
         last_treatment: current.last_treatment ?? '',
         notes: input.notes ?? current.notes ?? '',
         queen_race: input.queen_race ?? current.queen_race ?? '',
-        queen_birth_year: input.queen_birth_year ?? current.queen_birth_year ?? '',
+        queen_birth_year:
+          input.queen_birth_year ?? current.queen_birth_year ?? '',
         origin_hive: input.origin_hive ?? current.origin_hive ?? '',
         location: input.location ?? current.location ?? '',
-        active: input.active != null ? String(input.active) : (current.active ?? 'true'),
+        active:
+          input.active != null
+            ? String(input.active)
+            : (current.active ?? 'true'),
         updated_at: updatedAt,
       };
 
@@ -332,10 +337,10 @@ export function registerHiveTools(server: McpServer, env: Env) {
         spreadsheetId,
         HIVES_SHEET_NAME,
         rowIndex,
-        hiveToRow(merged),
+        hiveToRow(merged)
       );
 
       return toolResponse(merged);
-    },
+    }
   );
 }

@@ -1,5 +1,5 @@
 import { google, sheets_v4, drive_v3 } from 'googleapis';
-import { GOOGLE_SCOPES } from '../constants.js';
+import { GOOGLE_SCOPES } from '../constants';
 
 let cachedServiceAccountJson: string | undefined;
 let cachedSheetsClient: sheets_v4.Sheets | undefined;

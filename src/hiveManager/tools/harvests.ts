@@ -5,20 +5,21 @@ import {
   findRowIndex,
   getRows,
   updateRow,
-} from '../services/sheets.js';
-import { requireSpreadsheetContext } from '../services/spreadsheet.js';
+} from '../../services/sheets';
+import { requireSpreadsheetContext } from '../../services/spreadsheet';
 import {
   HARVEST_COL,
   HARVESTS_SHEET_NAME,
   HIVE_COL,
   HIVES_SHEET_NAME,
   LOGS_SHEET_NAME,
-} from '../constants.js';
-import { isoTimestampSchema } from '../shared/validation.js';
-import { generateUlid } from '../shared/ulid.js';
-import { toolResponse } from './toolResponse.js';
-import { rowToHive, hiveToRow } from './hives.js';
-import type { Env, Harvest } from '../types.js';
+} from '../constants';
+import { isoTimestampSchema } from '../../shared/validation';
+import { generateUlid } from '../../shared/ulid';
+import { toolResponse } from './toolResponse';
+import { rowToHive, hiveToRow } from './hives';
+import type { Harvest } from '../types';
+import { Env } from '../../types';
 
 function rowToHarvest(row: string[]): Harvest {
   return {
@@ -45,14 +46,14 @@ const LogHarvestSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Free-text harvest type label, e.g. "acacia", "sunflower", "spring"',
+      'Free-text harvest type label, e.g. "acacia", "sunflower", "spring"'
     ),
   units_extracted: z
     .number()
     .int()
     .optional()
     .describe(
-      'Number of units extracted — supers for vertical hives, frames for horizontal.',
+      'Number of units extracted — supers for vertical hives, frames for horizontal.'
     ),
   notes: z.string().optional().describe('Free text'),
   timestamp: isoTimestampSchema
@@ -61,10 +62,7 @@ const LogHarvestSchema = z.object({
 });
 
 const GetHarvestSummarySchema = z.object({
-  hive: z
-    .string()
-    .optional()
-    .describe('Scope to one hive; omit for all hives'),
+  hive: z.string().optional().describe('Scope to one hive; omit for all hives'),
   year: z.number().int().optional().describe('Filter by calendar year'),
   season: z
     .string()
@@ -128,7 +126,7 @@ export function registerHarvestTools(server: McpServer, env: Env) {
         spreadsheetId,
         HIVES_SHEET_NAME,
         HIVE_COL.hive,
-        input.hive,
+        input.hive
       );
 
       if (rowIndex !== null) {
@@ -148,7 +146,7 @@ export function registerHarvestTools(server: McpServer, env: Env) {
           spreadsheetId,
           HIVES_SHEET_NAME,
           rowIndex,
-          hiveToRow(updated),
+          hiveToRow(updated)
         );
       }
 
@@ -160,7 +158,7 @@ export function registerHarvestTools(server: McpServer, env: Env) {
         season: input.season ?? null,
         timestamp,
       });
-    },
+    }
   );
 
   server.registerTool(
@@ -189,7 +187,7 @@ export function registerHarvestTools(server: McpServer, env: Env) {
       if (input.season) {
         const seasonLower = input.season.toLowerCase();
         harvests = harvests.filter((h) =>
-          (h.season ?? '').toLowerCase().includes(seasonLower),
+          (h.season ?? '').toLowerCase().includes(seasonLower)
         );
       }
 
@@ -227,16 +225,21 @@ export function registerHarvestTools(server: McpServer, env: Env) {
       for (const h of harvests) {
         if (!h.season) continue;
         const key = `${h.season}|||${h.year}`;
-        seasonYearMap.set(key, (seasonYearMap.get(key) ?? 0) + toKg(h.weight_kg));
+        seasonYearMap.set(
+          key,
+          (seasonYearMap.get(key) ?? 0) + toKg(h.weight_kg)
+        );
       }
-      const by_season = Array.from(seasonYearMap.entries()).map(([key, total]) => {
-        const [season, year] = key.split('|||');
-        return {
-          season,
-          year: parseInt(year, 10),
-          total_kg: Math.round(total * 100) / 100,
-        };
-      });
+      const by_season = Array.from(seasonYearMap.entries()).map(
+        ([key, total]) => {
+          const [season, year] = key.split('|||');
+          return {
+            season,
+            year: parseInt(year, 10),
+            total_kg: Math.round(total * 100) / 100,
+          };
+        }
+      );
 
       return toolResponse({
         total_kg: Math.round(total_kg * 100) / 100,
@@ -245,6 +248,6 @@ export function registerHarvestTools(server: McpServer, env: Env) {
         by_season,
         entries: harvests,
       });
-    },
+    }
   );
 }

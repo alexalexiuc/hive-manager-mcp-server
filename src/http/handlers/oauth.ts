@@ -1,9 +1,11 @@
-import { signToken, verifyToken } from '../token.js';
-import type { RequestContext } from '../types.js';
+import { signToken, verifyToken } from '../token';
+import type { RequestContext } from '../types';
 
 // ---- OAuth metadata ----
 
-export async function handleOAuthMetadata(context: RequestContext): Promise<Response> {
+export async function handleOAuthMetadata(
+  context: RequestContext
+): Promise<Response> {
   const { url } = context;
   const base = `${url.protocol}//${url.host}`;
   return new Response(
@@ -59,7 +61,11 @@ function renderConsentPage(params: URLSearchParams): string {
 }
 
 function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 /**
@@ -86,7 +92,9 @@ function validateRedirectUri(redirectUri: string): URL | null {
   return null;
 }
 
-export async function handleOAuthAuthorizeGet(context: RequestContext): Promise<Response> {
+export async function handleOAuthAuthorizeGet(
+  context: RequestContext
+): Promise<Response> {
   const { url, env } = context;
   const params = url.searchParams;
 
@@ -94,7 +102,9 @@ export async function handleOAuthAuthorizeGet(context: RequestContext): Promise<
     return new Response('Invalid client_id', { status: 400 });
   }
   if (params.get('response_type') !== 'code') {
-    return new Response('Only response_type=code is supported', { status: 400 });
+    return new Response('Only response_type=code is supported', {
+      status: 400,
+    });
   }
   const rawRedirectUri = params.get('redirect_uri');
   if (!rawRedirectUri) {
@@ -119,7 +129,9 @@ interface AuthCodePayload {
   exp: number;
 }
 
-export async function handleOAuthAuthorizePost(context: RequestContext): Promise<Response> {
+export async function handleOAuthAuthorizePost(
+  context: RequestContext
+): Promise<Response> {
   const { request, env } = context;
   const body = await request.formData();
   const redirectUri = body.get('redirect_uri') as string | null;
@@ -191,7 +203,9 @@ function tokenError(error: string): Response {
   });
 }
 
-export async function handleOAuthToken(context: RequestContext): Promise<Response> {
+export async function handleOAuthToken(
+  context: RequestContext
+): Promise<Response> {
   const { request, env } = context;
   const body = await request.formData();
 
@@ -201,14 +215,20 @@ export async function handleOAuthToken(context: RequestContext): Promise<Respons
 
   const clientId = body.get('client_id') as string | null;
   const clientSecret = body.get('client_secret') as string | null;
-  if (clientId !== env.OAUTH_CLIENT_ID || clientSecret !== env.OAUTH_CLIENT_SECRET) {
+  if (
+    clientId !== env.OAUTH_CLIENT_ID ||
+    clientSecret !== env.OAUTH_CLIENT_SECRET
+  ) {
     return tokenError('invalid_client');
   }
 
   const code = body.get('code') as string | null;
   if (!code) return tokenError('invalid_request');
 
-  const payload = await verifyToken<AuthCodePayload>(code, env.OAUTH_CLIENT_SECRET);
+  const payload = await verifyToken<AuthCodePayload>(
+    code,
+    env.OAUTH_CLIENT_SECRET
+  );
   if (!payload) return tokenError('invalid_grant');
 
   const redirectUri = body.get('redirect_uri') as string | null;
@@ -234,7 +254,11 @@ export async function handleOAuthToken(context: RequestContext): Promise<Respons
   );
 
   return new Response(
-    JSON.stringify({ access_token: accessToken, token_type: 'bearer', expires_in: expiresIn }),
+    JSON.stringify({
+      access_token: accessToken,
+      token_type: 'bearer',
+      expires_in: expiresIn,
+    }),
     { headers: { 'Content-Type': 'application/json' } }
   );
 }

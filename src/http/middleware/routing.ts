@@ -1,6 +1,6 @@
-import { matchRoute } from '../routes.js';
-import { notFoundResponse } from '../responses.js';
-import type { RequestContext, WorkerHandler } from '../types.js';
+import { matchRoute } from '../routes';
+import { notFoundResponse } from '../responses';
+import type { RequestContext, WorkerHandler } from '../types';
 
 export function withRouteResolution(next: WorkerHandler): WorkerHandler {
   return async (context) => {

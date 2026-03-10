@@ -5,8 +5,8 @@ import {
   findRowIndex,
   getRows,
   updateRow,
-} from '../services/sheets.js';
-import { requireSpreadsheetContext } from '../services/spreadsheet.js';
+} from '../../services/sheets';
+import { requireSpreadsheetContext } from '../../services/spreadsheet';
 import {
   EventType,
   HIVE_COL,
@@ -15,12 +15,16 @@ import {
   LOGS_SHEET_NAME,
   DEFAULT_LOG_LIMIT,
   MAX_LOG_LIMIT,
-} from '../constants.js';
-import { isoTimestampSchema, yyyyMmDdDateSchema } from '../shared/validation.js';
-import { generateUlid } from '../shared/ulid.js';
-import { toolResponse } from './toolResponse.js';
-import { rowToHive, hiveToRow } from './hives.js';
-import type { Env, LogEntry } from '../types.js';
+} from '../constants';
+import {
+  isoTimestampSchema,
+  yyyyMmDdDateSchema,
+} from '../../shared/validation';
+import { generateUlid } from '../../shared/ulid';
+import { toolResponse } from './toolResponse';
+import { rowToHive, hiveToRow } from './hives';
+import type { LogEntry } from '../types';
+import { Env } from '../../types';
 
 function rowToLogEntry(row: string[]): LogEntry {
   return {
@@ -41,42 +45,42 @@ const LogEventSchema = z.object({
   event_type: z
     .nativeEnum(EventType)
     .describe(
-      'Type of event: "inspection" | "feeding" | "treatment" | "harvest" | "note"',
+      'Type of event: "inspection" | "feeding" | "treatment" | "harvest" | "note"'
     ),
   summary: z
     .string()
     .optional()
     .describe(
-      'Full narrative of the visit — what was observed and what was done. Stored in the log.',
+      'Full narrative of the visit — what was observed and what was done. Stored in the log.'
     ),
   queen_status: z
     .string()
     .optional()
     .describe(
-      'Updates the hive row on inspection events. Any descriptive string, e.g. "seen", "missing", "eggs_only".',
+      'Updates the hive row on inspection events. Any descriptive string, e.g. "seen", "missing", "eggs_only".'
     ),
   brood_status: z
     .string()
     .optional()
     .describe(
-      'Updates the hive row on inspection events. Any descriptive string, e.g. "healthy", "spotty".',
+      'Updates the hive row on inspection events. Any descriptive string, e.g. "healthy", "spotty".'
     ),
   food_status: z
     .string()
     .optional()
     .describe(
-      'Updates the hive row on inspection events. Any descriptive string, e.g. "full", "medium", "low".',
+      'Updates the hive row on inspection events. Any descriptive string, e.g. "full", "medium", "low".'
     ),
   strength: z
     .string()
     .optional()
     .describe(
-      'Updates the hive row on inspection events. Any descriptive string, e.g. "strong", "medium", "weak".',
+      'Updates the hive row on inspection events. Any descriptive string, e.g. "strong", "medium", "weak".'
     ),
   next_check: yyyyMmDdDateSchema
     .optional()
     .describe(
-      'Recommended next inspection date (YYYY-MM-DD). Updates the hive row.',
+      'Recommended next inspection date (YYYY-MM-DD). Updates the hive row.'
     ),
   treatment_product: z
     .string()
@@ -116,7 +120,7 @@ const GetLogHistorySchema = z.object({
     .default(DEFAULT_LOG_LIMIT)
     .optional()
     .describe(
-      `Max entries to return (default: ${DEFAULT_LOG_LIMIT}, max: ${MAX_LOG_LIMIT})`,
+      `Max entries to return (default: ${DEFAULT_LOG_LIMIT}, max: ${MAX_LOG_LIMIT})`
     ),
   offset: z
     .number()
@@ -173,7 +177,7 @@ export function registerLogTools(server: McpServer, env: Env) {
         spreadsheetId,
         HIVES_SHEET_NAME,
         HIVE_COL.hive,
-        input.hive,
+        input.hive
       );
 
       if (rowIndex === null) {
@@ -184,10 +188,18 @@ export function registerLogTools(server: McpServer, env: Env) {
           '', // units
           input.event_type !== EventType.NOTE ? date : '',
           input.next_check ?? '',
-          input.event_type === EventType.INSPECTION ? (input.strength ?? '') : '',
-          input.event_type === EventType.INSPECTION ? (input.queen_status ?? '') : '',
-          input.event_type === EventType.INSPECTION ? (input.brood_status ?? '') : '',
-          input.event_type === EventType.INSPECTION ? (input.food_status ?? '') : '',
+          input.event_type === EventType.INSPECTION
+            ? (input.strength ?? '')
+            : '',
+          input.event_type === EventType.INSPECTION
+            ? (input.queen_status ?? '')
+            : '',
+          input.event_type === EventType.INSPECTION
+            ? (input.brood_status ?? '')
+            : '',
+          input.event_type === EventType.INSPECTION
+            ? (input.food_status ?? '')
+            : '',
           input.summary ?? '', // last_action
           treatmentSummary,
           '', // notes
@@ -236,12 +248,17 @@ export function registerLogTools(server: McpServer, env: Env) {
           spreadsheetId,
           HIVES_SHEET_NAME,
           rowIndex,
-          hiveToRow(updated),
+          hiveToRow(updated)
         );
       }
 
-      return toolResponse({ log_id: logId, hive: input.hive, timestamp, event_type: input.event_type });
-    },
+      return toolResponse({
+        log_id: logId,
+        hive: input.hive,
+        timestamp,
+        event_type: input.event_type,
+      });
+    }
   );
 
   server.registerTool(
@@ -264,7 +281,7 @@ export function registerLogTools(server: McpServer, env: Env) {
 
       if (input.event_type) {
         filtered = filtered.filter(
-          (r) => r[LOG_COL.event_type] === input.event_type,
+          (r) => r[LOG_COL.event_type] === input.event_type
         );
       }
 
@@ -278,6 +295,6 @@ export function registerLogTools(server: McpServer, env: Env) {
       const next_offset = has_more ? offset + limit : null;
 
       return toolResponse({ entries, total_count, has_more, next_offset });
-    },
+    }
   );
 }

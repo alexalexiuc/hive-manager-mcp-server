@@ -1,8 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { createSheetsClient } from '../services/google.js';
-import { ensureSpreadsheetStructure } from '../services/sheets.js';
-import { requireSpreadsheetId } from '../services/spreadsheet.js';
-import type { Env } from '../types.js';
+import { createSheetsClient } from '../../services/google';
+import { requireSpreadsheetId } from '../../services/spreadsheet';
+import { ensureHiveManagerSpreadsheetStructure } from '../utils';
+import { Env } from '../../types';
 
 export function registerSetupTool(server: McpServer, env: Env) {
   server.registerTool(
@@ -19,7 +19,7 @@ export function registerSetupTool(server: McpServer, env: Env) {
     async () => {
       const sheets = createSheetsClient(env.GOOGLE_SERVICE_ACCOUNT_JSON);
       const spreadsheetId = requireSpreadsheetId(env);
-      await ensureSpreadsheetStructure(sheets, spreadsheetId);
+      await ensureHiveManagerSpreadsheetStructure(sheets, spreadsheetId);
 
       return {
         content: [
