@@ -12,6 +12,47 @@ import type { Env } from '../../../src/types';
 
 const config = requireE2EConfig();
 
+async function logBaseMeals(
+  env: Env,
+  spreadsheetId: string,
+  today: string
+): Promise<void> {
+  await callCaloriesTool(
+    env,
+    spreadsheetId,
+    'calories_log_meal',
+    {
+      description: 'Yogurt and granola',
+      calories: 350,
+      meal_type: 'breakfast',
+      date: today,
+    },
+    632
+  );
+  await callCaloriesTool(
+    env,
+    spreadsheetId,
+    'calories_log_meal',
+    {
+      description: 'Caesar salad with chicken',
+      calories: 500,
+      meal_type: 'lunch',
+      date: today,
+      protein_g: 35,
+      carbs_g: 20,
+      fat_g: 22,
+    },
+    633
+  );
+  await callCaloriesTool(
+    env,
+    spreadsheetId,
+    'calories_log_meal',
+    { description: 'Apple', calories: 80, meal_type: 'snack', date: today },
+    634
+  );
+}
+
 describe('E2E tools: calories summary', () => {
   let ctx: E2ESpreadsheetContext;
   let env: Env;
@@ -40,45 +81,12 @@ describe('E2E tools: calories summary', () => {
       },
       631
     );
-
-    // Log 3 initial meals (total: 930 kcal)
-    await callCaloriesTool(
-      env,
-      ctx.spreadsheetId,
-      'calories_log_meal',
-      {
-        description: 'Yogurt and granola',
-        calories: 350,
-        meal_type: 'breakfast',
-        date: today,
-      },
-      632
-    );
-    await callCaloriesTool(
-      env,
-      ctx.spreadsheetId,
-      'calories_log_meal',
-      {
-        description: 'Caesar salad with chicken',
-        calories: 500,
-        meal_type: 'lunch',
-        date: today,
-        protein_g: 35,
-        carbs_g: 20,
-        fat_g: 22,
-      },
-      633
-    );
-    await callCaloriesTool(
-      env,
-      ctx.spreadsheetId,
-      'calories_log_meal',
-      { description: 'Apple', calories: 80, meal_type: 'snack', date: today },
-      634
-    );
   }, 60_000);
 
   it('daily summary totals calories across all meals for the day', async () => {
+    // Log 3 meals (total: 930 kcal)
+    await logBaseMeals(env, ctx.spreadsheetId, today);
+
     const summaryResponse = await callCaloriesTool(
       env,
       ctx.spreadsheetId,
@@ -103,6 +111,9 @@ describe('E2E tools: calories summary', () => {
   }, 60_000);
 
   it('get_remaining shows calories left and per-meal budget hint', async () => {
+    // Log 3 meals (total: 930 kcal)
+    await logBaseMeals(env, ctx.spreadsheetId, today);
+
     const remainingResponse = await callCaloriesTool(
       env,
       ctx.spreadsheetId,
@@ -123,7 +134,10 @@ describe('E2E tools: calories summary', () => {
   }, 60_000);
 
   it('marks as over_budget when calories exceed daily target', async () => {
-    // Log a very large dinner to exceed the 1800 target (already at 930)
+    // Log 3 meals (total: 930 kcal)
+    await logBaseMeals(env, ctx.spreadsheetId, today);
+
+    // Log a very large dinner to exceed the 1800 target
     await callCaloriesTool(
       env,
       ctx.spreadsheetId,
@@ -153,7 +167,8 @@ describe('E2E tools: calories summary', () => {
   }, 60_000);
 
   it('weekly summary covers Mon–Sun and sums all logged days', async () => {
-    // Log a large dinner to have a full day's worth of calories logged
+    // Log 3 base meals + 1 large dinner for a full day's data
+    await logBaseMeals(env, ctx.spreadsheetId, today);
     await callCaloriesTool(
       env,
       ctx.spreadsheetId,
@@ -199,4 +214,5 @@ describe('E2E tools: calories summary', () => {
     expect(weekly.weekly_total_calories as number).toBeGreaterThanOrEqual(2130);
   }, 60_000);
 });
+
 
