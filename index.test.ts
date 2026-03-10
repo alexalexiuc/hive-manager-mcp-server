@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMcpServer } from './src/server';
+import { signToken } from './src/http/token';
 
 vi.mock(
   '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js',
@@ -14,8 +14,14 @@ vi.mock(
   })
 );
 
-vi.mock('./src/server.js', () => ({
+vi.mock('./src/hiveManager/server.js', () => ({
   createMcpServer: vi.fn().mockReturnValue({
+    connect: vi.fn().mockResolvedValue(undefined),
+  }),
+}));
+
+vi.mock('./src/calories/server.js', () => ({
+  createCaloriesServer: vi.fn().mockReturnValue({
     connect: vi.fn().mockResolvedValue(undefined),
   }),
 }));
@@ -30,9 +36,20 @@ async function loadWorker(): Promise<WorkerModule['default']> {
 function makeEnv(overrides: Record<string, string> = {}) {
   return {
     GOOGLE_SERVICE_ACCOUNT_JSON: '{"type":"service_account"}',
-    AUTH_API_KEY: 'test-api-key',
+    OAUTH_CLIENT_ID: 'test-client-id',
+    OAUTH_CLIENT_SECRET: 'test-client-secret',
     ...overrides,
   };
+}
+
+async function makeAccessToken(env: {
+  OAUTH_CLIENT_ID: string;
+  OAUTH_CLIENT_SECRET: string;
+}): Promise<string> {
+  return signToken(
+    { client_id: env.OAUTH_CLIENT_ID, exp: Date.now() + 3_600_000 },
+    env.OAUTH_CLIENT_SECRET
+  );
 }
 
 function makeRequest(
@@ -62,34 +79,59 @@ describe('HTTP routes', () => {
     expect(body.status).toBe('ok');
   });
 
-  it('rejects /mcp request without auth header', async () => {
+  it('rejects /apiary/:id request without auth header', async () => {
     const env = makeEnv();
-    const req = makeRequest('/mcp', 'POST');
+    const req = makeRequest('/apiary/sheet-123', 'POST');
     const res = await worker.fetch(req, env);
 
     expect(res.status).toBe(401);
   });
 
-  it('accepts /mcp request with auth header', async () => {
+  it('accepts /apiary/:id request with valid OAuth token', async () => {
     const env = makeEnv();
-    const req = makeRequest('/mcp', 'POST', {
-      Authorization: `Bearer ${env.AUTH_API_KEY}`,
-      'x-spreadsheet-id': 'sheet-123',
+    const accessToken = await makeAccessToken(env);
+    const req = makeRequest('/apiary/sheet-123', 'POST', {
+      Authorization: `Bearer ${accessToken}`,
     });
     const res = await worker.fetch(req, env);
 
     expect(res.status).toBe(200);
-    expect(createMcpServer).toHaveBeenCalledWith(
-      expect.objectContaining({
-        REQUEST_SPREADSHEET_ID: 'sheet-123',
-      })
-    );
   });
 
-  it('returns 404 for authorized unknown routes', async () => {
+  it('rejects /apiary/:id request with invalid OAuth token', async () => {
     const env = makeEnv();
+    const req = makeRequest('/apiary/sheet-123', 'POST', {
+      Authorization: 'Bearer invalid-token',
+    });
+    const res = await worker.fetch(req, env);
+
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects /calories/:id request without auth header', async () => {
+    const env = makeEnv();
+    const req = makeRequest('/calories/sheet-123', 'POST');
+    const res = await worker.fetch(req, env);
+
+    expect(res.status).toBe(401);
+  });
+
+  it('accepts /calories/:id request with valid OAuth token', async () => {
+    const env = makeEnv();
+    const accessToken = await makeAccessToken(env);
+    const req = makeRequest('/calories/sheet-123', 'POST', {
+      Authorization: `Bearer ${accessToken}`,
+    });
+    const res = await worker.fetch(req, env);
+
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 404 for unknown routes when authenticated', async () => {
+    const env = makeEnv();
+    const accessToken = await makeAccessToken(env);
     const req = makeRequest('/some-other-path', 'GET', {
-      Authorization: `Bearer ${env.AUTH_API_KEY}`,
+      Authorization: `Bearer ${accessToken}`,
     });
     const res = await worker.fetch(req, env);
 

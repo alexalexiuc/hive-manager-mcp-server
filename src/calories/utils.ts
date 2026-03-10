@@ -7,7 +7,26 @@ import {
   MEALS_SHEET_HEADERS,
   PROFILE_SHEET_HEADERS,
   REQUIRED_CALORIES_SHEETS,
+  PROFILE_COL,
 } from './constants';
+import type { BodyProfile } from './types';
+
+export function rowToProfile(row: string[]): BodyProfile {
+  return {
+    name: row[PROFILE_COL.name] ?? '',
+    age: row[PROFILE_COL.age] ?? '',
+    height_cm: row[PROFILE_COL.height_cm] ?? '',
+    weight_kg: row[PROFILE_COL.weight_kg] ?? '',
+    sex: row[PROFILE_COL.sex] ?? '',
+    activity_level: row[PROFILE_COL.activity_level] ?? '',
+    goal_calories_override: row[PROFILE_COL.goal_calories_override] ?? '',
+    neck_cm: row[PROFILE_COL.neck_cm] ?? '',
+    waist_cm: row[PROFILE_COL.waist_cm] ?? '',
+    hips_cm: row[PROFILE_COL.hips_cm] ?? '',
+    notes: row[PROFILE_COL.notes] ?? '',
+    updated_at: row[PROFILE_COL.updated_at] ?? '',
+  };
+}
 
 export async function ensureCaloriesSpreadsheetStructure(
   sheets: sheets_v4.Sheets,

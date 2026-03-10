@@ -13,10 +13,11 @@ import {
   MealType,
   DEFAULT_MEAL_LIMIT,
   MAX_MEAL_LIMIT,
+  MEALS_SHEET_HEADERS,
 } from '../constants';
 import { yyyyMmDdDateSchema } from '../../shared/validation';
 import type { MealEntry } from '../types';
-import { toolResponse } from '../../hiveManager/tools/toolResponse';
+import { toolResponse } from '../../shared/toolResponse';
 import { generateUlid } from '../../shared/ulid';
 import { Env } from '../../types';
 
@@ -132,7 +133,7 @@ export function registerMealTools(server: McpServer, env: Env) {
       // Infer meal type from time of day if not provided
       let meal_type = input.meal_type;
       if (!meal_type) {
-        const hour = new Date().getHours();
+        const hour = new Date().getUTCHours();
         if (hour < 10) meal_type = MealType.BREAKFAST;
         else if (hour < 14) meal_type = MealType.LUNCH;
         else if (hour < 19) meal_type = MealType.DINNER;
@@ -240,7 +241,7 @@ export function registerMealTools(server: McpServer, env: Env) {
       }
 
       // Clear the row (set all cells to empty string)
-      const emptyRow = Array(10).fill('') as string[];
+      const emptyRow = Array(MEALS_SHEET_HEADERS.length).fill('') as string[];
       const sheetRowIndex = rowIndex + 2; // +1 for header, +1 for 1-based index
 
       try {

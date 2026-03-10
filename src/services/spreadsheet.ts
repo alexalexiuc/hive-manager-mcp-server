@@ -4,7 +4,7 @@ import { createSheetsClient } from './google';
 export function requireSpreadsheetId(env: Env): string {
   if (!env.REQUEST_SPREADSHEET_ID || !env.REQUEST_SPREADSHEET_ID.trim()) {
     throw new Error(
-      'Missing spreadsheet id. Include it in the MCP endpoint URL: /mcp/:spreadsheetId'
+      'Missing spreadsheet id. Include it in the endpoint URL: /apiary/:spreadsheetId or /calories/:spreadsheetId'
     );
   }
 

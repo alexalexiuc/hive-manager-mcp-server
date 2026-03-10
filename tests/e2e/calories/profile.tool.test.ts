@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import { createSheetsClient } from '../../../src/services/google';
 import { getRows } from '../../../src/services/sheets';
 import {
@@ -12,18 +12,38 @@ import {
   prepareAndClearCaloriesSpreadsheet,
   requireE2EConfig,
   resolveE2ESpreadsheetContext,
+  type E2ESpreadsheetContext,
 } from '../e2eUtils';
+import type { Env } from '../../../src/types';
 
 const config = requireE2EConfig();
 
 describe('E2E tools: calories profile', () => {
-  it('saves profile and returns calculated BMR and TDEE', async () => {
-    const ctx = await resolveE2ESpreadsheetContext(config);
+  let ctx: E2ESpreadsheetContext;
+  let env: Env;
+
+  beforeEach(async () => {
+    ctx = await resolveE2ESpreadsheetContext(config);
     await prepareAndClearCaloriesSpreadsheet(config, ctx.spreadsheetId);
-    const env = buildE2EEnv(config);
+    env = buildE2EEnv(config);
+    await callCaloriesTool(env, ctx.spreadsheetId, 'calories_setup', {}, 610);
+    await callCaloriesTool(
+      env,
+      ctx.spreadsheetId,
+      'calories_update_profile',
+      {
+        name: 'Alex',
+        age: 30,
+        height_cm: 178,
+        weight_kg: 75,
+        sex: 'male',
+        activity_level: 'moderately_active',
+      },
+      611
+    );
+  }, 60_000);
 
-    await callCaloriesTool(env, ctx.spreadsheetId, 'calories_setup', {}, 611);
-
+  it('saves profile and returns calculated BMR and TDEE', async () => {
     const updateResponse = await callCaloriesTool(
       env,
       ctx.spreadsheetId,
@@ -69,9 +89,6 @@ describe('E2E tools: calories profile', () => {
   }, 60_000);
 
   it('get_profile returns same calculated values as update', async () => {
-    const ctx = await resolveE2ESpreadsheetContext(config);
-    const env = buildE2EEnv(config);
-
     const getResponse = await callCaloriesTool(
       env,
       ctx.spreadsheetId,
@@ -93,10 +110,7 @@ describe('E2E tools: calories profile', () => {
   }, 60_000);
 
   it('partial update preserves existing fields', async () => {
-    const ctx = await resolveE2ESpreadsheetContext(config);
-    const env = buildE2EEnv(config);
-
-    // Only update weight; all other fields should remain
+    // Only update weight; all other fields should remain from beforeEach
     const updateResponse = await callCaloriesTool(
       env,
       ctx.spreadsheetId,
@@ -114,9 +128,6 @@ describe('E2E tools: calories profile', () => {
   }, 60_000);
 
   it('goal_calories_override replaces TDEE as daily_calories', async () => {
-    const ctx = await resolveE2ESpreadsheetContext(config);
-    const env = buildE2EEnv(config);
-
     const updateResponse = await callCaloriesTool(
       env,
       ctx.spreadsheetId,
@@ -135,3 +146,4 @@ describe('E2E tools: calories profile', () => {
     expect(calculated.tdee as number).not.toBe(1800);
   }, 60_000);
 });
+
