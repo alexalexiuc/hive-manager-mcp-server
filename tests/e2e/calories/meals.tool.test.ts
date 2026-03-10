@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import { MEALS_SHEET_NAME, MEAL_COL } from '../../../src/calories/constants';
 import {
   buildE2EEnv,
@@ -7,20 +7,26 @@ import {
   prepareAndClearCaloriesSpreadsheet,
   requireE2EConfig,
   resolveE2ESpreadsheetContext,
+  type E2ESpreadsheetContext,
 } from '../e2eUtils';
 import { createSheetsClient } from '../../../src/services/google';
 import { getRows } from '../../../src/services/sheets';
+import type { Env } from '../../../src/types';
 
 const config = requireE2EConfig();
 
 describe('E2E tools: calories meals', () => {
-  it('logs a meal and reads it back', async () => {
-    const ctx = await resolveE2ESpreadsheetContext(config);
+  let ctx: E2ESpreadsheetContext;
+  let env: Env;
+
+  beforeEach(async () => {
+    ctx = await resolveE2ESpreadsheetContext(config);
     await prepareAndClearCaloriesSpreadsheet(config, ctx.spreadsheetId);
-    const env = buildE2EEnv(config);
+    env = buildE2EEnv(config);
+    await callCaloriesTool(env, ctx.spreadsheetId, 'calories_setup', {}, 620);
+  }, 60_000);
 
-    await callCaloriesTool(env, ctx.spreadsheetId, 'calories_setup', {}, 621);
-
+  it('logs a meal and reads it back', async () => {
     const today = new Date().toISOString().split('T')[0]!;
 
     const logResponse = await callCaloriesTool(
@@ -83,12 +89,21 @@ describe('E2E tools: calories meals', () => {
   }, 60_000);
 
   it('filters meals by meal_type', async () => {
-    const ctx = await resolveE2ESpreadsheetContext(config);
-    const env = buildE2EEnv(config);
-
     const today = new Date().toISOString().split('T')[0]!;
 
-    // Add a breakfast entry alongside the existing lunch
+    // Log both a lunch and breakfast in this test
+    await callCaloriesTool(
+      env,
+      ctx.spreadsheetId,
+      'calories_log_meal',
+      {
+        description: 'Grilled chicken breast with rice',
+        calories: 650,
+        meal_type: 'lunch',
+        date: today,
+      },
+      624
+    );
     await callCaloriesTool(
       env,
       ctx.spreadsheetId,
@@ -99,7 +114,7 @@ describe('E2E tools: calories meals', () => {
         meal_type: 'breakfast',
         date: today,
       },
-      624
+      625
     );
 
     const lunchResponse = await callCaloriesTool(
@@ -107,7 +122,7 @@ describe('E2E tools: calories meals', () => {
       ctx.spreadsheetId,
       'calories_get_meals',
       { date: today, meal_type: 'lunch' },
-      625
+      626
     );
     const lunchPayload = extractToolJson(lunchResponse);
     expect(lunchPayload.total_count).toBe(1);
@@ -119,7 +134,7 @@ describe('E2E tools: calories meals', () => {
       ctx.spreadsheetId,
       'calories_get_meals',
       { date: today, meal_type: 'breakfast' },
-      626
+      627
     );
     const breakfastPayload = extractToolJson(breakfastResponse);
     expect(breakfastPayload.total_count).toBe(1);
@@ -130,9 +145,6 @@ describe('E2E tools: calories meals', () => {
   }, 60_000);
 
   it('deletes a meal and it no longer appears in queries', async () => {
-    const ctx = await resolveE2ESpreadsheetContext(config);
-    const env = buildE2EEnv(config);
-
     const today = new Date().toISOString().split('T')[0]!;
 
     // Log a snack to delete
@@ -146,7 +158,7 @@ describe('E2E tools: calories meals', () => {
         meal_type: 'snack',
         date: today,
       },
-      627
+      628
     );
     const snackPayload = extractToolJson(snackResponse);
     const snackId = snackPayload.meal_id as string;
@@ -157,7 +169,7 @@ describe('E2E tools: calories meals', () => {
       ctx.spreadsheetId,
       'calories_delete_meal',
       { meal_id: snackId },
-      628
+      629
     );
     const deletePayload = extractToolJson(deleteResponse);
     expect(deletePayload.deleted).toBe(true);
@@ -169,9 +181,10 @@ describe('E2E tools: calories meals', () => {
       ctx.spreadsheetId,
       'calories_get_meals',
       { date: today, meal_type: 'snack' },
-      629
+      630
     );
     const getMealsPayload = extractToolJson(getMealsResponse);
     expect(getMealsPayload.total_count).toBe(0);
   }, 60_000);
 });
+

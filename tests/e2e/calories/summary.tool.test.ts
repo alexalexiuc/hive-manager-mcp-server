@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import {
   buildE2EEnv,
   callCaloriesTool,
@@ -6,17 +6,65 @@ import {
   prepareAndClearCaloriesSpreadsheet,
   requireE2EConfig,
   resolveE2ESpreadsheetContext,
+  type E2ESpreadsheetContext,
 } from '../e2eUtils';
+import type { Env } from '../../../src/types';
 
 const config = requireE2EConfig();
 
-describe('E2E tools: calories summary', () => {
-  it('daily summary totals calories across all meals for the day', async () => {
-    const ctx = await resolveE2ESpreadsheetContext(config);
-    await prepareAndClearCaloriesSpreadsheet(config, ctx.spreadsheetId);
-    const env = buildE2EEnv(config);
+async function logBaseMeals(
+  env: Env,
+  spreadsheetId: string,
+  today: string
+): Promise<void> {
+  await callCaloriesTool(
+    env,
+    spreadsheetId,
+    'calories_log_meal',
+    {
+      description: 'Yogurt and granola',
+      calories: 350,
+      meal_type: 'breakfast',
+      date: today,
+    },
+    632
+  );
+  await callCaloriesTool(
+    env,
+    spreadsheetId,
+    'calories_log_meal',
+    {
+      description: 'Caesar salad with chicken',
+      calories: 500,
+      meal_type: 'lunch',
+      date: today,
+      protein_g: 35,
+      carbs_g: 20,
+      fat_g: 22,
+    },
+    633
+  );
+  await callCaloriesTool(
+    env,
+    spreadsheetId,
+    'calories_log_meal',
+    { description: 'Apple', calories: 80, meal_type: 'snack', date: today },
+    634
+  );
+}
 
-    await callCaloriesTool(env, ctx.spreadsheetId, 'calories_setup', {}, 631);
+describe('E2E tools: calories summary', () => {
+  let ctx: E2ESpreadsheetContext;
+  let env: Env;
+  let today: string;
+
+  beforeEach(async () => {
+    ctx = await resolveE2ESpreadsheetContext(config);
+    await prepareAndClearCaloriesSpreadsheet(config, ctx.spreadsheetId);
+    env = buildE2EEnv(config);
+    today = new Date().toISOString().split('T')[0]!;
+
+    await callCaloriesTool(env, ctx.spreadsheetId, 'calories_setup', {}, 630);
 
     // Set up a profile so we have a daily target
     await callCaloriesTool(
@@ -31,52 +79,20 @@ describe('E2E tools: calories summary', () => {
         activity_level: 'lightly_active',
         goal_calories_override: 1800,
       },
-      632
+      631
     );
+  }, 60_000);
 
-    const today = new Date().toISOString().split('T')[0]!;
-
-    await callCaloriesTool(
-      env,
-      ctx.spreadsheetId,
-      'calories_log_meal',
-      {
-        description: 'Yogurt and granola',
-        calories: 350,
-        meal_type: 'breakfast',
-        date: today,
-      },
-      633
-    );
-    await callCaloriesTool(
-      env,
-      ctx.spreadsheetId,
-      'calories_log_meal',
-      {
-        description: 'Caesar salad with chicken',
-        calories: 500,
-        meal_type: 'lunch',
-        date: today,
-        protein_g: 35,
-        carbs_g: 20,
-        fat_g: 22,
-      },
-      634
-    );
-    await callCaloriesTool(
-      env,
-      ctx.spreadsheetId,
-      'calories_log_meal',
-      { description: 'Apple', calories: 80, meal_type: 'snack', date: today },
-      635
-    );
+  it('daily summary totals calories across all meals for the day', async () => {
+    // Log 3 meals (total: 930 kcal)
+    await logBaseMeals(env, ctx.spreadsheetId, today);
 
     const summaryResponse = await callCaloriesTool(
       env,
       ctx.spreadsheetId,
       'calories_get_daily_summary',
       { date: today },
-      636
+      635
     );
     const summary = extractToolJson(summaryResponse);
 
@@ -95,17 +111,15 @@ describe('E2E tools: calories summary', () => {
   }, 60_000);
 
   it('get_remaining shows calories left and per-meal budget hint', async () => {
-    const ctx = await resolveE2ESpreadsheetContext(config);
-    const env = buildE2EEnv(config);
-
-    const today = new Date().toISOString().split('T')[0]!;
+    // Log 3 meals (total: 930 kcal)
+    await logBaseMeals(env, ctx.spreadsheetId, today);
 
     const remainingResponse = await callCaloriesTool(
       env,
       ctx.spreadsheetId,
       'calories_get_remaining',
       { date: today, meal_type: 'dinner' },
-      637
+      636
     );
     const remaining = extractToolJson(remainingResponse);
 
@@ -120,12 +134,10 @@ describe('E2E tools: calories summary', () => {
   }, 60_000);
 
   it('marks as over_budget when calories exceed daily target', async () => {
-    const ctx = await resolveE2ESpreadsheetContext(config);
-    const env = buildE2EEnv(config);
+    // Log 3 meals (total: 930 kcal)
+    await logBaseMeals(env, ctx.spreadsheetId, today);
 
-    const today = new Date().toISOString().split('T')[0]!;
-
-    // Log a very large dinner to exceed the 1800 target (already at 930)
+    // Log a very large dinner to exceed the 1800 target
     await callCaloriesTool(
       env,
       ctx.spreadsheetId,
@@ -136,7 +148,7 @@ describe('E2E tools: calories summary', () => {
         meal_type: 'dinner',
         date: today,
       },
-      638
+      637
     );
 
     const remainingResponse = await callCaloriesTool(
@@ -144,7 +156,7 @@ describe('E2E tools: calories summary', () => {
       ctx.spreadsheetId,
       'calories_get_remaining',
       { date: today },
-      639
+      638
     );
     const remaining = extractToolJson(remainingResponse);
 
@@ -155,10 +167,20 @@ describe('E2E tools: calories summary', () => {
   }, 60_000);
 
   it('weekly summary covers Mon–Sun and sums all logged days', async () => {
-    const ctx = await resolveE2ESpreadsheetContext(config);
-    const env = buildE2EEnv(config);
-
-    const today = new Date().toISOString().split('T')[0]!;
+    // Log 3 base meals + 1 large dinner for a full day's data
+    await logBaseMeals(env, ctx.spreadsheetId, today);
+    await callCaloriesTool(
+      env,
+      ctx.spreadsheetId,
+      'calories_log_meal',
+      {
+        description: 'Large steak dinner with wine and dessert',
+        calories: 1200,
+        meal_type: 'dinner',
+        date: today,
+      },
+      639
+    );
 
     const weeklyResponse = await callCaloriesTool(
       env,
@@ -192,3 +214,5 @@ describe('E2E tools: calories summary', () => {
     expect(weekly.weekly_total_calories as number).toBeGreaterThanOrEqual(2130);
   }, 60_000);
 });
+
+

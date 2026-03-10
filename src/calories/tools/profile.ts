@@ -9,31 +9,14 @@ import {
 import { requireSpreadsheetContext } from '../../services/spreadsheet';
 import {
   PROFILE_SHEET_NAME,
-  PROFILE_COL,
   ActivityLevel,
   Sex,
   ACTIVITY_MULTIPLIERS,
 } from '../constants';
 import type { BodyProfile } from '../types';
 import { Env } from '../../types';
-import { toolResponse } from '../../hiveManager/tools/toolResponse';
-
-function rowToProfile(row: string[]): BodyProfile {
-  return {
-    name: row[PROFILE_COL.name] ?? '',
-    age: row[PROFILE_COL.age] ?? '',
-    height_cm: row[PROFILE_COL.height_cm] ?? '',
-    weight_kg: row[PROFILE_COL.weight_kg] ?? '',
-    sex: row[PROFILE_COL.sex] ?? '',
-    activity_level: row[PROFILE_COL.activity_level] ?? '',
-    goal_calories_override: row[PROFILE_COL.goal_calories_override] ?? '',
-    neck_cm: row[PROFILE_COL.neck_cm] ?? '',
-    waist_cm: row[PROFILE_COL.waist_cm] ?? '',
-    hips_cm: row[PROFILE_COL.hips_cm] ?? '',
-    notes: row[PROFILE_COL.notes] ?? '',
-    updated_at: row[PROFILE_COL.updated_at] ?? '',
-  };
-}
+import { toolResponse } from '../../shared/toolResponse';
+import { rowToProfile } from '../utils';
 
 function profileToRow(profile: BodyProfile): (string | number | undefined)[] {
   return [
@@ -63,7 +46,7 @@ export function calculateTDEE(profile: BodyProfile): {
   const sex = profile.sex as Sex;
   const activity = profile.activity_level as ActivityLevel;
 
-  if (!age || !height || !weight || !sex) {
+  if (!age || !height || !weight || (sex !== Sex.MALE && sex !== Sex.FEMALE)) {
     return { bmr: null, tdee: null, daily_calories: null };
   }
 
@@ -149,9 +132,11 @@ export function registerProfileTools(server: McpServer, env: Env) {
       const { spreadsheetId, sheets } = await requireSpreadsheetContext(env);
 
       let existing: BodyProfile = {};
+      let existingRowCount = 0;
 
       try {
         const rows = await getRows(sheets, spreadsheetId, PROFILE_SHEET_NAME);
+        existingRowCount = rows.length;
         if (rows.length > 0 && rows[0]) {
           existing = rowToProfile(rows[0]);
         }
@@ -197,8 +182,7 @@ export function registerProfileTools(server: McpServer, env: Env) {
       };
 
       try {
-        const rows = await getRows(sheets, spreadsheetId, PROFILE_SHEET_NAME);
-        if (rows.length > 0) {
+        if (existingRowCount > 0) {
           await updateRow(
             sheets,
             spreadsheetId,
