@@ -1,19 +1,17 @@
-import type { Env } from '../types.js';
-import { createSheetsClient } from './google.js';
+import type { Env } from '../types';
+import { createSheetsClient } from './google';
 
 export function requireSpreadsheetId(env: Env): string {
   if (!env.REQUEST_SPREADSHEET_ID || !env.REQUEST_SPREADSHEET_ID.trim()) {
     throw new Error(
-      'Missing spreadsheet id. Pass x-spreadsheet-id request header.',
+      'Missing spreadsheet id. Include it in the endpoint URL: /apiary/:spreadsheetId or /calories/:spreadsheetId'
     );
   }
 
   return env.REQUEST_SPREADSHEET_ID.trim();
 }
 
-export async function requireSpreadsheetContext(
-  env: Env,
-): Promise<{
+export async function requireSpreadsheetContext(env: Env): Promise<{
   spreadsheetId: string;
   sheets: ReturnType<typeof createSheetsClient>;
 }> {

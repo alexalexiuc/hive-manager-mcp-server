@@ -1,6 +1,4 @@
-import type { Env } from '../types.js';
-
-export type RouteHandler = (request: Request, env: Env) => Promise<Response>;
+import type { Env } from '../types';
 
 export interface RouteDefinition {
   method: string;
@@ -16,6 +14,9 @@ export interface RequestContext {
   startedAt: number;
   url: URL;
   route?: RouteDefinition;
+  params: Record<string, string>;
 }
+
+export type RouteHandler = (context: RequestContext) => Promise<Response>;
 
 export type WorkerHandler = (context: RequestContext) => Promise<Response>;

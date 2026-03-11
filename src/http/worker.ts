@@ -1,7 +1,7 @@
-import { withAuthorization } from './middleware/auth.js';
-import { createRequestId, withRequestLogging } from './middleware/logging.js';
-import { routeRequest, withRouteResolution } from './middleware/routing.js';
-import type { Env } from '../types.js';
+import { withAuthorization } from './middleware/auth';
+import { createRequestId, withRequestLogging } from './middleware/logging';
+import { routeRequest, withRouteResolution } from './middleware/routing';
+import type { Env } from '../types';
 
 const handler = withRequestLogging(
   withRouteResolution(withAuthorization(routeRequest))
@@ -15,6 +15,7 @@ const worker = {
       requestId: createRequestId(),
       startedAt: Date.now(),
       url: new URL(request.url),
+      params: {},
     });
   },
 };

@@ -1,4 +1,4 @@
-import type { RequestContext } from './types.js';
+import type { RequestContext } from './types';
 
 export function toErrorPayload(error: unknown): {
   error: string;

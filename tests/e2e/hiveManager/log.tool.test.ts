@@ -4,24 +4,24 @@ import {
   HIVES_SHEET_NAME,
   LOG_COL,
   LOGS_SHEET_NAME,
-} from '../../src/constants.js';
-import { createSheetsClient } from '../../src/services/google.js';
-import { getRows } from '../../src/services/sheets.js';
+} from '../../../src/hiveManager/constants';
+import { createSheetsClient } from '../../../src/services/google';
+import { getRows } from '../../../src/services/sheets';
 import {
   buildE2EEnv,
   callTool,
   extractToolJson,
-  prepareAndClearSpreadsheet,
+  prepareAndClearHiveManagerSpreadsheet,
   requireE2EConfig,
   resolveE2ESpreadsheetContext,
-} from './e2eUtils.js';
+} from '../e2eUtils';
 
 const config = requireE2EConfig();
 
 describe('E2E tool: apiary_log_event', () => {
   it('writes a logs row and creates/updates hive row', async () => {
     const ctx = await resolveE2ESpreadsheetContext(config);
-    await prepareAndClearSpreadsheet(config, ctx.spreadsheetId);
+    await prepareAndClearHiveManagerSpreadsheet(config, ctx.spreadsheetId);
     const env = buildE2EEnv(config);
 
     await callTool(env, ctx.spreadsheetId, 'apiary_setup', {}, 201);
@@ -38,7 +38,7 @@ describe('E2E tool: apiary_log_event', () => {
         food_status: 'medium',
         summary: 'Initial hive inspection.',
       },
-      202,
+      202
     );
     const payload = extractToolJson(rpcResponse);
     expect(typeof payload.log_id).toBe('string');

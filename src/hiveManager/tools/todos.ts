@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { getRows, appendRow, updateRow } from '../services/sheets.js';
-import { requireSpreadsheetContext } from '../services/spreadsheet.js';
-import { TODOS_SHEET_NAME, TODO_COL } from '../constants.js';
-import { yyyyMmDdDateSchema } from '../shared/validation.js';
-import { generateUlid } from '../shared/ulid.js';
-import { toolResponse } from './toolResponse.js';
-import type { Env } from '../types.js';
+import { getRows, appendRow, updateRow } from '../../services/sheets';
+import { requireSpreadsheetContext } from '../../services/spreadsheet';
+import { yyyyMmDdDateSchema } from '../../shared/validation';
+import { generateUlid } from '../../shared/ulid';
+import { toolResponse } from './toolResponse';
+import { Env } from '../../types';
+import { TODO_COL, TODOS_SHEET_NAME } from '../constants';
 
 const TodoPrioritySchema = z.enum(['low', 'medium', 'high']);
 const TodoStatusSchema = z.enum(['open', 'done', 'all']);
@@ -17,10 +17,11 @@ const AddTodoSchema = z.object({
     .string()
     .optional()
     .describe('Hive identifier. Omit for apiary-level todos.'),
-  priority: TodoPrioritySchema
-    .optional()
+  priority: TodoPrioritySchema.optional()
     .default('medium')
-    .describe('Task priority: "high" | "medium" | "low". Defaults to "medium".'),
+    .describe(
+      'Task priority: "high" | "medium" | "low". Defaults to "medium".'
+    ),
   due_date: yyyyMmDdDateSchema
     .optional()
     .describe('Optional due date (YYYY-MM-DD)'),
@@ -28,27 +29,26 @@ const AddTodoSchema = z.object({
 });
 
 const ListTodosSchema = z.object({
-  hive: z
-    .string()
-    .optional()
-    .describe('Filter to one hive\'s todos'),
+  hive: z.string().optional().describe("Filter to one hive's todos"),
   include_apiary: z
     .boolean()
     .optional()
     .default(true)
     .describe(
-      'Include apiary-level todos (where hive is empty) alongside hive-specific ones. Defaults to true.',
+      'Include apiary-level todos (where hive is empty) alongside hive-specific ones. Defaults to true.'
     ),
   status: TodoStatusSchema.optional()
     .default('open')
     .describe('"open" | "done" | "all". Defaults to "open".'),
-  priority: TodoPrioritySchema
-    .optional()
-    .describe('Filter by priority: "high", "medium", or "low"'),
+  priority: TodoPrioritySchema.optional().describe(
+    'Filter by priority: "high", "medium", or "low"'
+  ),
 });
 
 const CompleteTodoSchema = z.object({
-  todo_id: z.string().describe('Todo identifier from apiary_add_todo or apiary_list_todos'),
+  todo_id: z
+    .string()
+    .describe('Todo identifier from apiary_add_todo or apiary_list_todos'),
   notes: z.string().optional().describe('Optional completion notes'),
 });
 
@@ -72,7 +72,7 @@ function rowToTodo(row: string[]) {
 
 function findTodoRowIndexByTodoId(
   rows: string[][],
-  todoId: string,
+  todoId: string
 ): number | null {
   for (let i = 0; i < rows.length; i++) {
     if ((rows[i][TODO_COL.todo_id] ?? '') === todoId) {
@@ -119,7 +119,7 @@ export function registerTodoTools(server: McpServer, env: Env) {
         due_date: input.due_date ?? null,
         created_at: now,
       });
-    },
+    }
   );
 
   server.registerTool(
@@ -146,7 +146,7 @@ export function registerTodoTools(server: McpServer, env: Env) {
       if (input.hive) {
         const includeApiary = input.include_apiary ?? true;
         todos = todos.filter(
-          (t) => t.hive === input.hive || (includeApiary && t.hive === ''),
+          (t) => t.hive === input.hive || (includeApiary && t.hive === '')
         );
       }
 
@@ -156,7 +156,7 @@ export function registerTodoTools(server: McpServer, env: Env) {
       }
 
       return toolResponse({ todos, count: todos.length });
-    },
+    }
   );
 
   server.registerTool(
@@ -191,14 +191,19 @@ export function registerTodoTools(server: McpServer, env: Env) {
         now,
       ];
 
-      await updateRow(sheets, spreadsheetId, TODOS_SHEET_NAME, rowIndex, updatedRow);
+      await updateRow(
+        sheets,
+        spreadsheetId,
+        TODOS_SHEET_NAME,
+        rowIndex,
+        updatedRow
+      );
 
       return toolResponse({
         todo_id: input.todo_id,
         status: 'done',
         updated_at: now,
       });
-    },
+    }
   );
 }
-

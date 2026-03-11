@@ -1,4 +1,4 @@
-import worker from './worker.js';
+import worker from './http/worker';
 
 export default worker;
 
