@@ -6,3 +6,7 @@ dist/
 coverage/
 
 google-service-account.json
+
+.claude/settings.local.json
+
+secrets-server
