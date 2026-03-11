@@ -44,7 +44,7 @@ export async function signToken(
   return `${data}.${base64urlEncode(sig)}`;
 }
 
-export async function verifyToken<T extends { exp: number }>(
+export async function verifyToken<T extends { exp?: number }>(
   token: string,
   secret: string
 ): Promise<T | null> {
@@ -64,7 +64,9 @@ export async function verifyToken<T extends { exp: number }>(
 
   try {
     const payload = JSON.parse(base64urlDecodeStr(data)) as T;
-    if (payload.exp < Date.now()) return null;
+    if (typeof payload.exp === 'number' && payload.exp < Date.now()) {
+      return null;
+    }
     return payload;
   } catch {
     return null;

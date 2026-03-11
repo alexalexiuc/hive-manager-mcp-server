@@ -247,9 +247,8 @@ export async function handleOAuthToken(
     if (!ok) return tokenError('invalid_grant');
   }
 
-  const expiresIn = 3600;
   const accessToken = await signToken(
-    { client_id: clientId, exp: Date.now() + expiresIn * 1000 },
+    { client_id: clientId },
     env.OAUTH_CLIENT_SECRET
   );
 
@@ -257,7 +256,6 @@ export async function handleOAuthToken(
     JSON.stringify({
       access_token: accessToken,
       token_type: 'bearer',
-      expires_in: expiresIn,
     }),
     { headers: { 'Content-Type': 'application/json' } }
   );

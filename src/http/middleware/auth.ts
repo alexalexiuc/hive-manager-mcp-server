@@ -1,16 +1,16 @@
 import { PromiseCacheX } from 'promise-cachex';
 import type { Env } from '../../types';
-import { verifyToken, base64urlDecodeStr } from '../token';
+import { verifyToken } from '../token';
 import { unauthorizedResponse } from '../responses';
 import type { WorkerHandler } from '../types';
 
 interface AccessTokenPayload {
   client_id: string;
-  exp: number;
+  exp?: number;
 }
 
 // Cache validated tokens so each token string is only HMAC-verified once per isolate.
-// TTL is aligned to the token's own expiry so stale tokens are never served from cache.
+// TTL is aligned to the token's own expiry when present; otherwise it's capped.
 const tokenCache = new PromiseCacheX<boolean>();
 
 async function isAuthorized(request: Request, env: Env): Promise<boolean> {
@@ -23,38 +23,18 @@ async function isAuthorized(request: Request, env: Env): Promise<boolean> {
   if (scheme?.toLowerCase() !== 'bearer' || !token) return false;
 
   const cacheKey = `${env.OAUTH_CLIENT_ID}:${token}`;
-  const valid = await tokenCache.get(
-    cacheKey,
-    async () => {
-      const payload = await verifyToken<AccessTokenPayload>(
-        token,
-        env.OAUTH_CLIENT_SECRET
-      );
-      if (!payload || payload.client_id !== env.OAUTH_CLIENT_ID) return false;
-      return true;
-    },
-    { ttl: computeTtl(token) }
-  );
+  const valid = await tokenCache.get(cacheKey, async () => {
+    const payload = await verifyToken<AccessTokenPayload>(
+      token,
+      env.OAUTH_CLIENT_SECRET
+    );
+    if (!payload || payload.client_id !== env.OAUTH_CLIENT_ID) return false;
+    return true;
+  });
   if (!valid) {
     tokenCache.delete(cacheKey); // remove invalid tokens from cache immediately
   }
   return valid;
-}
-
-/** Extract the expiry from the token payload without re-verifying the signature. */
-function computeTtl(token: string): number {
-  const MAX_TTL = 3600 * 1000; // cap at 1 hour regardless of claimed exp
-  try {
-    const dot = token.indexOf('.');
-    if (dot === -1) return 0;
-    const payload = JSON.parse(base64urlDecodeStr(token.slice(0, dot))) as {
-      exp?: number;
-    };
-    const remaining = (payload.exp ?? 0) - Date.now();
-    return remaining > 0 ? Math.min(remaining, MAX_TTL) : 0;
-  } catch {
-    return 0;
-  }
 }
 
 export function withAuthorization(next: WorkerHandler): WorkerHandler {
