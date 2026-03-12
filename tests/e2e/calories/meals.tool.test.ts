@@ -56,6 +56,12 @@ describe('E2E tools: calories meals', () => {
     expect(logPayload.meal_type).toBe('lunch');
     expect(logPayload.date).toBe(today);
 
+    // Enriched remaining fields — no profile set up, so targets are null
+    expect(logPayload.calories_consumed).toBe(650);
+    expect(logPayload.daily_target).toBeNull();
+    expect(logPayload.remaining_calories).toBeNull();
+    expect(logPayload.over_budget).toBeNull();
+
     const mealId = logPayload.meal_id as string;
 
     // Verify via get_meals
@@ -86,6 +92,61 @@ describe('E2E tools: calories meals', () => {
     expect(rows[0][MEAL_COL.calories]).toBe('650');
     expect(rows[0][MEAL_COL.meal_type]).toBe('lunch');
     expect(rows[0][MEAL_COL.protein_g]).toBe('45');
+  }, 60_000);
+
+  it('log response includes remaining calories when profile is set', async () => {
+    const today = new Date().toISOString().split('T')[0]!;
+
+    // Set up a profile with a known daily target
+    await callCaloriesTool(
+      env,
+      ctx.spreadsheetId,
+      'calories_update_profile',
+      { goal_calories_override: 2000 },
+      641
+    );
+
+    // Log first meal
+    const firstLog = await callCaloriesTool(
+      env,
+      ctx.spreadsheetId,
+      'calories_log_meal',
+      { description: 'Oatmeal', calories: 300, meal_type: 'breakfast', date: today },
+      642
+    );
+    const firstPayload = extractToolJson(firstLog);
+    expect(firstPayload.calories_consumed).toBe(300);
+    expect(firstPayload.daily_target).toBe(2000);
+    expect(firstPayload.remaining_calories).toBe(1700); // 2000 - 300
+    expect(firstPayload.over_budget).toBe(false);
+
+    // Log second meal (cumulative total: 1800)
+    const secondLog = await callCaloriesTool(
+      env,
+      ctx.spreadsheetId,
+      'calories_log_meal',
+      { description: 'Big lunch', calories: 1500, meal_type: 'lunch', date: today },
+      643
+    );
+    const secondPayload = extractToolJson(secondLog);
+    expect(secondPayload.calories_consumed).toBe(1800); // 300 + 1500
+    expect(secondPayload.daily_target).toBe(2000);
+    expect(secondPayload.remaining_calories).toBe(200); // 2000 - 1800
+    expect(secondPayload.over_budget).toBe(false);
+
+    // Log a meal that pushes over budget
+    const thirdLog = await callCaloriesTool(
+      env,
+      ctx.spreadsheetId,
+      'calories_log_meal',
+      { description: 'Huge dinner', calories: 800, meal_type: 'dinner', date: today },
+      644
+    );
+    const thirdPayload = extractToolJson(thirdLog);
+    expect(thirdPayload.calories_consumed).toBe(2600); // 1800 + 800
+    expect(thirdPayload.daily_target).toBe(2000);
+    expect(thirdPayload.remaining_calories).toBe(-600); // 2000 - 2600
+    expect(thirdPayload.over_budget).toBe(true);
   }, 60_000);
 
   it('filters meals by meal_type', async () => {

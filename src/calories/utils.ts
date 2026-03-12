@@ -8,8 +8,39 @@ import {
   PROFILE_SHEET_HEADERS,
   REQUIRED_CALORIES_SHEETS,
   PROFILE_COL,
+  MEAL_COL,
 } from './constants';
 import type { BodyProfile } from './types';
+
+export interface DayTotals {
+  date: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  meal_count: number;
+}
+
+export function sumMealsForDate(rows: string[][], date: string): DayTotals {
+  const dayRows = rows.filter(
+    (r) => r[MEAL_COL.date] === date && r[MEAL_COL.meal_id] !== ''
+  );
+  const totals: DayTotals = {
+    date,
+    calories: 0,
+    protein_g: 0,
+    carbs_g: 0,
+    fat_g: 0,
+    meal_count: dayRows.length,
+  };
+  for (const row of dayRows) {
+    totals.calories += Number(row[MEAL_COL.calories]) || 0;
+    totals.protein_g += Number(row[MEAL_COL.protein_g]) || 0;
+    totals.carbs_g += Number(row[MEAL_COL.carbs_g]) || 0;
+    totals.fat_g += Number(row[MEAL_COL.fat_g]) || 0;
+  }
+  return totals;
+}
 
 export function rowToProfile(row: string[]): BodyProfile {
   return {

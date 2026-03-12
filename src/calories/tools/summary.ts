@@ -11,7 +11,7 @@ import {
 import { yyyyMmDdDateSchema } from '../../shared/validation';
 import { calculateTDEE } from './profile';
 import { rowToMealEntry } from './meals';
-import { rowToProfile } from '../utils';
+import { rowToProfile, sumMealsForDate, type DayTotals } from '../utils';
 import { toolResponse } from '../../shared/toolResponse';
 import { Env } from '../../types';
 
@@ -27,36 +27,6 @@ function getWeekBounds(dateStr: string): { start: string; end: string } {
     start: monday.toISOString().split('T')[0]!,
     end: sunday.toISOString().split('T')[0]!,
   };
-}
-
-interface DayTotals {
-  date: string;
-  calories: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-  meal_count: number;
-}
-
-function sumMealsForDate(rows: string[][], date: string): DayTotals {
-  const dayRows = rows.filter(
-    (r) => r[MEAL_COL.date] === date && r[MEAL_COL.meal_id] !== ''
-  );
-  const totals: DayTotals = {
-    date,
-    calories: 0,
-    protein_g: 0,
-    carbs_g: 0,
-    fat_g: 0,
-    meal_count: dayRows.length,
-  };
-  for (const row of dayRows) {
-    totals.calories += Number(row[MEAL_COL.calories]) || 0;
-    totals.protein_g += Number(row[MEAL_COL.protein_g]) || 0;
-    totals.carbs_g += Number(row[MEAL_COL.carbs_g]) || 0;
-    totals.fat_g += Number(row[MEAL_COL.fat_g]) || 0;
-  }
-  return totals;
 }
 
 const GetDailySummarySchema = z.object({
