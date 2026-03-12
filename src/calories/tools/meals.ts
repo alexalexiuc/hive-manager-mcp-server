@@ -14,12 +14,15 @@ import {
   DEFAULT_MEAL_LIMIT,
   MAX_MEAL_LIMIT,
   MEALS_SHEET_HEADERS,
+  PROFILE_SHEET_NAME,
 } from '../constants';
 import { yyyyMmDdDateSchema } from '../../shared/validation';
 import type { MealEntry } from '../types';
 import { toolResponse } from '../../shared/toolResponse';
 import { generateUlid } from '../../shared/ulid';
 import { Env } from '../../types';
+import { rowToProfile, sumMealsForDate } from '../utils';
+import { calculateTDEE } from './profile';
 
 export function rowToMealEntry(row: string[]): MealEntry {
   return {
@@ -159,6 +162,34 @@ export function registerMealTools(server: McpServer, env: Env) {
         throw toSheetOperationError(error, MEALS_SHEET_NAME);
       }
 
+      // Fetch updated meal rows and profile to compute remaining-calories
+      // enrichment. This is best-effort: if the reads fail (e.g. quota), we
+      // return null for the enrichment fields so the meal is not re-logged on
+      // an MCP-level retry of the whole request.
+      const mealRows = await getRows(
+        sheets,
+        spreadsheetId,
+        MEALS_SHEET_NAME
+      ).catch(() => []);
+      const profileRows = await getRows(
+        sheets,
+        spreadsheetId,
+        PROFILE_SHEET_NAME
+      ).catch(() => []);
+
+      const profile =
+        profileRows.length > 0 && profileRows[0]
+          ? rowToProfile(profileRows[0])
+          : {};
+      const { daily_calories } = calculateTDEE(profile);
+
+      const totals = mealRows.length > 0 ? sumMealsForDate(mealRows, date) : null;
+      const calories_consumed = totals?.calories ?? null;
+      const remaining_calories =
+        daily_calories !== null && calories_consumed !== null
+          ? daily_calories - calories_consumed
+          : null;
+
       return toolResponse({
         meal_id,
         date,
@@ -168,6 +199,10 @@ export function registerMealTools(server: McpServer, env: Env) {
         protein_g: input.protein_g ?? null,
         carbs_g: input.carbs_g ?? null,
         fat_g: input.fat_g ?? null,
+        calories_consumed,
+        daily_target: daily_calories,
+        remaining_calories,
+        over_budget: remaining_calories !== null ? remaining_calories < 0 : null,
       });
     }
   );

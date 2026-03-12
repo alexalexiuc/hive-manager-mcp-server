@@ -48,9 +48,9 @@ export async function execWithBackoffRetry<T>(
   fn: () => Promise<T>,
   options: RetryOptions = {}
 ): Promise<T> {
-  const maxAttempts = options.maxAttempts ?? 5;
+  const maxAttempts = options.maxAttempts ?? 8;
   const initialDelayMs = options.initialDelayMs ?? 1_000;
-  const maxDelayMs = options.maxDelayMs ?? 15_000;
+  const maxDelayMs = options.maxDelayMs ?? 60_000;
   const factor = options.factor ?? 2;
   const isRetryable = options.isRetryable ?? isRetryableGoogleQuotaError;
 

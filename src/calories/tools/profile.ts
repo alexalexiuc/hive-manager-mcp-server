@@ -46,8 +46,14 @@ export function calculateTDEE(profile: BodyProfile): {
   const sex = profile.sex as Sex;
   const activity = profile.activity_level as ActivityLevel;
 
+  // If a manual override is set, return it directly even without full profile data
+  const overrideCalories = Number(profile.goal_calories_override);
   if (!age || !height || !weight || (sex !== Sex.MALE && sex !== Sex.FEMALE)) {
-    return { bmr: null, tdee: null, daily_calories: null };
+    return {
+      bmr: null,
+      tdee: null,
+      daily_calories: overrideCalories > 0 ? overrideCalories : null,
+    };
   }
 
   // Mifflin-St Jeor equation
